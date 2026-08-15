@@ -9,6 +9,7 @@ add_action( 'carbon_fields_register_fields', 'nsfc_register_location_fields' );
 add_action( 'carbon_fields_register_fields', 'nsfc_register_season_landing_fields' );
 add_action( 'carbon_fields_register_fields', 'nsfc_register_camps_fields' );
 add_action( 'carbon_fields_register_fields', 'nsfc_register_camp_type_fields' );
+add_action( 'carbon_fields_register_fields', 'nsfc_register_level_hub_fields' );
 
 /**
  * Every published `program_location` term, as a select-field options array.
@@ -290,6 +291,50 @@ function nsfc_register_camps_fields() {
                 ->set_required( true ),
             Field::make( 'textarea', 'nsfc_note', 'Note' )
                 ->set_help_text( 'Optional. Shown below the camp listing table — or as the entire message when no camps are currently scheduled for this season/location.' ),
+        ] );
+}
+
+function nsfc_register_level_hub_fields() {
+
+    // ── Level Hub pages ─────────────────────────────────────────────────────
+    // Competitive / Recreational landing pages, one step above the season
+    // pages (e.g. /youth-soccer/rochester/competitive/). Unlike Camps Season
+    // pages, there are no posts to query at this depth — the three season
+    // cards' copy is typed here, per page.
+    //
+    // Flat fields rather than a complex/repeater: seasons are a fixed set of
+    // three, matching the camps-hub.php / camps-season.php convention.
+    //
+    // No Level field. The level is implicit in the page title and hierarchy,
+    // and the season card links derive from get_permalink() — nothing would
+    // read it. The child Season Landing pages carry their own Level field in
+    // the separate box below, which is the one season-landing.php's tax_query
+    // actually uses.
+    Container::make( 'post_meta', 'Level Hub Details' )
+        ->where( 'post_type', '=', 'page' )
+        ->where( 'post_template', '=', 'page-templates/level-hub.php' )
+        ->add_fields( [
+            Field::make( 'select', 'nsfc_location', 'Location' )
+                ->add_options( 'nsfc_location_term_options' )
+                ->set_required( true ),
+            Field::make( 'textarea', 'nsfc_intro', 'Intro paragraph(s)' )
+                ->set_help_text( 'Shown under the title. Leave a blank line between paragraphs for multiple. Leave blank to omit entirely.' ),
+            Field::make( 'text', 'nsfc_footer_prompt', 'Footer prompt' )
+                ->set_help_text( 'Optional line shown above the Contact us button, e.g. "Not sure competitive is the right fit?". Leave blank to omit.' ),
+
+            Field::make( 'separator', 'nsfc_sep_spring_summer', 'Spring / Summer card' ),
+            Field::make( 'text', 'nsfc_spring_summer_date_range', 'Date range' )
+                ->set_help_text( 'e.g. "March – June". Leave blank to omit this line.' ),
+            Field::make( 'textarea', 'nsfc_spring_summer_description', 'Description' )
+                ->set_help_text( 'Leave blank to omit. The card still renders and still links through.' ),
+
+            Field::make( 'separator', 'nsfc_sep_fall', 'Fall card' ),
+            Field::make( 'text', 'nsfc_fall_date_range', 'Date range' ),
+            Field::make( 'textarea', 'nsfc_fall_description', 'Description' ),
+
+            Field::make( 'separator', 'nsfc_sep_winter', 'Winter card' ),
+            Field::make( 'text', 'nsfc_winter_date_range', 'Date range' ),
+            Field::make( 'textarea', 'nsfc_winter_description', 'Description' ),
         ] );
 }
 

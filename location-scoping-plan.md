@@ -69,8 +69,8 @@ initial git commit meaningful.
 
 **Met as of 2026-08-15.** The repo now has history and a remote:
 `https://github.com/jlikely/northstar-testing.git`. Work is happening on
-branch `feature/locations-update`. **Phases 1–5 are unblocked** — Phases 1–2 are
-done; Phase 3 is the next actionable step.
+branch `feature/locations-update`. **Phases 1–5 are unblocked** — Phases 1–3 are
+done; Phase 4 is the next actionable step (the first that touches live pages).
 
 **Git does not cover the database.** Version control tracks
 `wp-content/themes/nsfc-child/` only. Phase 4 clears `post_content` on live
@@ -269,8 +269,38 @@ and 117–127 onto `level-hub.php`/`camps-hub.php` in Phases 4–5 — clear
      and `?program_level=competitive` do exactly the same on that screen and
      predate this phase. No UI constructs such a URL, so it's left alone.
 
-- [ ] **Phase 3 — Build the Level Hub template + fields (code only, not
-  applied to any live page yet).**
+- [x] **Phase 3 — Build the Level Hub template + fields (code only, not
+  applied to any live page yet).** *(done 2026-08-15)*
+
+  **As implemented.** `page-templates/level-hub.php` + a 6th
+  `carbon_fields_register_fields` hook calling
+  `nsfc_register_level_hub_fields()` in `inc/carbon-fields.php`. Built to the
+  spec below, with two deliberate departures:
+
+  - **Intro paragraph classes are assembled with `array_filter` + `implode`,
+    not the `printf` sketch below.** The sketch emits
+    `class=" text-muted mb-2"` (leading space) for any paragraph that isn't
+    the first, which would have been a *sixth* Phase 4 diff line for no
+    reason. Verified on the test page that the output now matches posts 7/8
+    byte-for-byte: 1 paragraph → `lead text-muted mb-5` (post 7), 3
+    paragraphs → `lead text-muted mb-2` / `text-muted mb-2` /
+    `text-muted mb-5` (post 8).
+  - **`separator` fields are prefixed `nsfc_sep_*`** rather than the `sep_*`
+    below, matching the `nsfc_` namespacing every other page-level field in
+    that file uses (they all share the `page` post type).
+
+  **A 5th Phase 4 delta was discovered here — see Phase 4.** `get_permalink()`
+  returns absolute URLs where posts 7/8 hand-typed root-relative paths. The
+  original list of four would have made this look like template drift.
+
+  *Verified* on throwaway page 214, since deleted (trash emptied; page count
+  back to 51, 0 pages left on this template): "Level Hub Details" box appears
+  with all 9 content fields; the Location dropdown resolves to the 4 real
+  taxonomy terms with correct display names; with only Location + one date
+  range filled, all 3 cards render and link through while the blank fields
+  emit nothing at all (no stray empty `<p>` tags) — the exact condition
+  Phase 5's 24 blank-field pages depend on; HTTP 200, zero PHP errors in the
+  body, `ddev logs` clean.
 
   New `page-templates/level-hub.php` (Template Name: `Level Hub`). Follows
   `camps-hub.php`'s shape (read location from Carbon Fields, render 3 fixed
@@ -467,13 +497,23 @@ and 117–127 onto `level-hub.php`/`camps-hub.php` in Phases 4–5 — clear
   No changes needed to the existing child season pages (posts 39–44) — they
   already work and this doesn't touch them.
 
-  **Expected rendering change: four small deltas, everything else
+  **Expected rendering change: five small deltas, everything else
   byte-comparable.** The template above was specified to reproduce the live
-  markup, but these four are accepted rather than engineered around:
+  markup, but these five are accepted rather than engineered around:
   1. Post 8's h1/subtitle margins shift `mb-2` → `mb-1`/`mb-4` (~4px), standardizing on post 7's spacing.
   2. Post 7's intro `max-width` 520px → 600px (one shared value rather than a per-page field; slightly wider wrap on one line).
   3. Post 8 loses the "Choose a season" eyebrow h2 — **intentional**, fixes the heading-hierarchy bug.
   4. Breadcrumb moves from the `[wpseo_breadcrumb]` shortcode to `yoast_breadcrumb()` — equivalent output, marginally different wrapper markup. Unavoidable when moving from `post_content` to a template.
+  5. **Links become absolute URLs.** Posts 7/8 hand-typed root-relative
+     hrefs (`/youth-soccer/rochester/competitive/spring-summer/`); the
+     template derives them from `get_permalink()`, which returns the full
+     URL (`https://northstar-testing.ddev.site/…`). Affects all 3 season
+     cards and the back-link on each page. Functionally identical, and it
+     matches what `camps-hub.php` already renders on post 9 — so this makes
+     posts 7/8 *more* consistent with the site, not less. **Found while
+     verifying Phase 3 on the test page (2026-08-15); this delta was missing
+     from the original list of four, and would otherwise have tripped the
+     "stop and fix the template" rule below as a false alarm.**
 
   **Verify:** capture both pages *before* retrofitting, then diff:
   ```sh
@@ -482,7 +522,7 @@ and 117–127 onto `level-hub.php`/`camps-hub.php` in Phases 4–5 — clear
   # ...retrofit...
   curl -s https://northstar-testing.ddev.site/youth-soccer/rochester/competitive/ | diff /tmp/comp-before.html -
   ```
-  The diff should contain **only** the four deltas above. Anything else —
+  The diff should contain **only** the five deltas above. Anything else —
   changed container width, a season label reading "Spring/Summer" without
   spaces, a missing footer prompt, unstyled intro paragraphs — means
   `level-hub.php` drifted from spec: stop and fix the template, don't accept
@@ -677,8 +717,8 @@ undo for the code half.
 
 ## Status
 
-Last updated: 2026-08-15. Phases 0–2 complete; the git/GitHub prerequisite above
-is now met. **Phase 3 is the next actionable step.** Implement one phase at a
+Last updated: 2026-08-15. Phases 0–3 complete; the git/GitHub prerequisite above
+is now met. **Phase 4 is the next actionable step.** Implement one phase at a
 time, verify live, and update this checklist before moving on.
 
 **Reviewed and corrected 2026-08-15** against live theme code and the running
