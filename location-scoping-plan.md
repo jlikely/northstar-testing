@@ -69,8 +69,8 @@ initial git commit meaningful.
 
 **Met as of 2026-08-15.** The repo now has history and a remote:
 `https://github.com/jlikely/northstar-testing.git`. Work is happening on
-branch `feature/locations-update`. **Phases 1–5 are unblocked** — Phases 1–3 are
-done; Phase 4 is the next actionable step (the first that touches live pages).
+branch `feature/locations-update`. **Phases 1–5 are unblocked** — Phases 1–4 are
+done; Phase 5 is the next actionable step.
 
 **Git does not cover the database.** Version control tracks
 `wp-content/themes/nsfc-child/` only. Phase 4 clears `post_content` on live
@@ -80,9 +80,15 @@ are required**, because Phase 4's snapshot is already stale by the time
 Phase 5 destroys different content:
 
 ```sh
-ddev export-db --file=pre-phase4.sql.gz   # before Phase 4 (posts 7, 8)
-ddev export-db --file=pre-phase5.sql.gz   # before Phase 5 (posts 117–127)
+ddev export-db --file=backups/pre-phase4.sql.gz   # before Phase 4 (posts 7, 8)
+ddev export-db --file=backups/pre-phase5.sql.gz   # before Phase 5 (posts 117–127)
 ```
+
+**Write these to `backups/`, not the repo root.** `/backups/` was added to
+`.gitignore` on 2026-08-15 for exactly this reason — nothing in the repo
+previously ignored `*.sql.gz`, so a dump left at the root would be swept into
+the next commit. `backups/` now holds the Phase 4 artefacts (the dump, posts
+7/8 `post_content`, and the before/after renders) and stays out of git.
 
 Also dump the affected `post_content` values to individual files as a
 copy-paste fallback — posts 7/8 before Phase 4, posts 117/118/119, 121/122/123,
@@ -459,7 +465,22 @@ and 117–127 onto `level-hub.php`/`camps-hub.php` in Phases 4–5 — clear
   5. Delete the test page (and empty Trash — a lingering Level Hub page in
      Trash muddies Phase 5's `_wp_page_template` spot-checks).
 
-- [ ] **Phase 4 — Retrofit Rochester (posts 7 and 8) onto Level Hub.**
+- [x] **Phase 4 — Retrofit Rochester (posts 7 and 8) onto Level Hub.**
+  *(done 2026-08-15 — verified clean, Phase 5 is unblocked)*
+
+  **As executed.** Meta was set via `ddev wp eval-file
+  backups/phase4-retrofit.php` rather than a series of `ddev wp post meta
+  update` calls: the copy contains en dashes ("March – June", "U6–U19") and
+  em dashes ("No tryouts, no pressure — just fun…"), and passing those
+  through shell arguments risks silent mangling. The script is kept in
+  `backups/` as the record of exactly what was written.
+
+  *Verified:* the semantic diff (see method below) showed **only** the
+  documented deltas and **zero text-content differences** on both pages — no
+  copy dropped, no dashes mangled. All 12 Rochester URLs return 200 with no
+  PHP errors; `ddev logs` clean; child season pages 39–44 still list their
+  programs (3/3/6 competitive, 5/3/4 recreational); posts 7/8 `post_content`
+  is empty, matching posts 9/100.
   Highest-risk phase — touches live, currently-working pages. **Take the DB
   export first** (see Prerequisite). Switch `_wp_page_template` to
   `page-templates/level-hub.php`, clear `post_content` to empty (see
@@ -514,6 +535,17 @@ and 117–127 onto `level-hub.php`/`camps-hub.php` in Phases 4–5 — clear
      verifying Phase 3 on the test page (2026-08-15); this delta was missing
      from the original list of four, and would otherwise have tripped the
      "stop and fix the template" rule below as a false alarm.**
+  6. **`og:description` disappears from `<head>`.** Yoast auto-derives it
+     from `post_content`; clearing that leaves nothing to derive from, and no
+     manual meta description is set on these pages. **Pre-existing pattern,
+     not new breakage** — posts 9 and 100 (already template-driven with empty
+     `post_content`) have had no `og:description` all along, so this makes
+     7/8 consistent with them. Also `article:modified_time` / `dateModified`
+     update, which is simply true. *Found during the Phase 4 retrofit
+     (2026-08-15).* **Applies identically to Phase 5's 9 retrofitted pages.**
+     Worth a real fix before any production launch — set Yoast meta
+     descriptions on template-driven pages — but out of scope for an
+     IA-validation POC; noted here so it isn't rediscovered as a bug.
 
   **Verify:** capture both pages *before* retrofitting, then diff:
   ```sh
@@ -522,7 +554,16 @@ and 117–127 onto `level-hub.php`/`camps-hub.php` in Phases 4–5 — clear
   # ...retrofit...
   curl -s https://northstar-testing.ddev.site/youth-soccer/rochester/competitive/ | diff /tmp/comp-before.html -
   ```
-  The diff should contain **only** the five deltas above. Anything else —
+  **Raw `diff` is nearly unreadable here** — the template's PHP emits
+  different leading whitespace than the hand-typed HTML, so hundreds of lines
+  differ cosmetically. Compare *semantically* instead: strip inter-tag
+  whitespace, tokenise into tags and text runs, then diff the token lists.
+  Done that way the Phase 4 retrofit produced exactly the documented deltas
+  and **zero text-content differences** — proof no copy was dropped or
+  mangled (the en/em dashes in "March – June" and "No tryouts, no pressure —"
+  survive intact).
+
+  The diff should contain **only** the six deltas above. Anything else —
   changed container width, a season label reading "Spring/Summer" without
   spaces, a missing footer prompt, unstyled intro paragraphs — means
   `level-hub.php` drifted from spec: stop and fix the template, don't accept
@@ -672,11 +713,11 @@ BASE=https://northstar-testing.ddev.site
 # Every URL this plan touches or creates. After Phase 4, only rochester lines apply.
 for loc in rochester austin albert-lea winona; do
   for lvl in competitive recreational; do
-    for s in "" spring-summer fall winter; do
+    for s in "" "spring-summer/" "fall/" "winter/"; do
       echo "$BASE/youth-soccer/$loc/$lvl/$s"
     done
   done
-  for s in "" spring-summer fall winter; do
+  for s in "" "spring-summer/" "fall/" "winter/"; do
     echo "$BASE/youth-soccer/$loc/camps/$s"
   done
 done | while read -r url; do
@@ -717,8 +758,8 @@ undo for the code half.
 
 ## Status
 
-Last updated: 2026-08-15. Phases 0–3 complete; the git/GitHub prerequisite above
-is now met. **Phase 4 is the next actionable step.** Implement one phase at a
+Last updated: 2026-08-15. Phases 0–4 complete; the git/GitHub prerequisite above
+is now met. **Phase 5 is the next actionable step.** Implement one phase at a
 time, verify live, and update this checklist before moving on.
 
 **Reviewed and corrected 2026-08-15** against live theme code and the running

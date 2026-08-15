@@ -31,3 +31,6 @@ wp-config-local.php
 
 # macOS
 .DS_Store
+
+# Local DB snapshots taken before destructive phases (see location-scoping-plan.md)
+/backups/
