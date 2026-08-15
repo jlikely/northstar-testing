@@ -373,6 +373,60 @@ ddev wp rewrite flush
 ddev logs --follow
 ```
 
+## Production readiness (deliberately deferred)
+
+This is a POC whose purpose is validating the IA and navigation patterns, not
+producing a deployable site. The shortcuts below are **intentional** — they
+are listed so a future session can tell a deferred decision from a bug, and
+so nothing here gets "fixed" prematurely while the POC is still the goal.
+None of them affect whether the IA validates.
+
+### Domain migration — read this before changing the site URL
+Changing the domain is **not** just `siteurl` + `home`. Yoast caches absolute
+permalinks in its own tables, and Yoast supplies the breadcrumbs on every
+template — so stale rows there produce breadcrumb links pointing at the old
+domain even when WordPress itself is fully migrated. This bit us on
+2026-08-15 when the DDEV project was renamed `nsfc` → `northstar-testing`:
+the site loaded fine, but every breadcrumb still linked to `nsfc.ddev.site`.
+
+The fix that actually works — note `--all-tables`, since `wp_yoast_*` are not
+tables WordPress registers, so the default search-replace scope misses them:
+
+```bash
+ddev snapshot --name pre-domain-fix          # always snapshot first
+ddev wp search-replace 'old.host' 'new.host' --all-tables --skip-columns=guid
+ddev wp cache flush
+```
+
+`--skip-columns=guid` is deliberate: GUIDs are permanent post identifiers,
+never rendered as links, and rewriting them is the one thing the WP docs warn
+against during a move. `wp_posts.guid` therefore still contains 181
+`nsfc.ddev.site` strings. That is correct and should be left alone.
+
+Do the same replace for `http://` → `https://` if the scheme changes; the
+same Yoast tables cache the scheme too.
+
+### Not production-ready, fix at build time
+- **`setup.sh` hardcodes `--admin_password=admin`** (and CLAUDE.md documents
+  admin/admin). Fine for a throwaway local DDEV site that is never deployed;
+  must become an env var or a generated credential before any real hosting.
+- **TLS is local-only.** Certificates come from mkcert, trusted per-machine.
+  Production needs real certificates; nothing in the theme depends on this.
+- **`wp-config.php` is gitignored** and holds DDEV's DB credentials. A prod
+  deploy needs real secrets management and fresh salts — do not lift the
+  local config.
+- **Plugins are not tracked in git** (`/wp-content/plugins/` is ignored). The
+  plugin set is reproducible only from the "Plugin inventory" table above.
+  Consider Composer + wpackagist if this becomes a real build.
+- **Content lives only in the local database.** Nothing but the child theme
+  is in version control, so the ~50 pages / 16 programs / 28 camp sessions
+  exist on this machine alone. Back up with `ddev snapshot` before risky
+  work; migrating to prod means a real DB export, not a git checkout.
+- **Only Rochester has real program data.** Austin, Albert Lea, and Winona
+  are fallback stubs linking to northstarfc.com — the templates and taxonomy
+  are already location-aware and ready for real data (see the URL structure
+  section and `documentation/adding-a-location.md`).
+
 ## What NOT to do
 
 - Do not install new plugins without checking the build plan first
