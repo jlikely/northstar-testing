@@ -105,9 +105,7 @@ foreach ( $child_pages as $child ) {
 
       <?php
       // Breadcrumb
-      if ( function_exists( 'yoast_breadcrumb' ) ) {
-          yoast_breadcrumb( '<nav aria-label="Breadcrumb" class="mb-4"><p class="breadcrumb">', '</p></nav>' );
-      }
+      nsfc_breadcrumb();
       ?>
 
       <?php // Season toggle tab bar — only on season landing pages, never on detail pages ?>

@@ -838,6 +838,13 @@ Competitive/Recreational/Camps pages are template-driven and self-serve, the
 `program_location` taxonomy is the single source of truth, and the docs match
 the code.
 
+**Superseded since completion:** Yoast SEO was removed on 2026-08-15 and
+breadcrumbs are now `nsfc_breadcrumb()` (`inc/breadcrumbs.php`), verified
+byte-identical to Yoast's output on all 7 templates before the plugin was
+deleted. Phase 4's delta 4 ("breadcrumb moves to `yoast_breadcrumb()`") and
+delta 6 (missing `og:description`) are therefore historical — there is no SEO
+plugin at all now. Nothing else in this file is affected.
+
 **Known follow-ups, none blocking** (all recorded in CLAUDE.md's
 "Production readiness" list rather than here):
 - No `og:description` on template-driven pages — Yoast derives it from

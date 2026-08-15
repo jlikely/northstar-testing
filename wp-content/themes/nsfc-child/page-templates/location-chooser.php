@@ -28,9 +28,7 @@ $finder_page = get_page_by_path( 'youth-soccer/rochester/find-your-program' );
     <div class="col-lg-8">
 
       <?php
-      if ( function_exists( 'yoast_breadcrumb' ) ) {
-          yoast_breadcrumb( '<nav aria-label="Breadcrumb" class="mb-4"><p class="breadcrumb">', '</p></nav>' );
-      }
+      nsfc_breadcrumb();
       ?>
 
       <h1 class="display-6 fw-bold mb-2">Youth Soccer</h1>

@@ -84,7 +84,8 @@ northstar-testing/              ← repo root + DDEV project root (this director
 │           │   ├── carbon-fields.php   ← Field group definitions
 │           │   ├── location-data.php   ← Shared location-hub card copy (see "Location Hub pages")
 │           │   ├── admin-filters.php   ← Location filter on the Programs/Camp Sessions list tables
-│           │   └── admin-ui.php        ← Enqueues assets/admin.css on editor screens
+│           │   ├── admin-ui.php        ← Enqueues assets/admin.css on editor screens
+│           │   └── breadcrumbs.php     ← nsfc_breadcrumb() — native trail, no plugin
 │           ├── assets/
 │           │   └── admin.css           ← wp-admin only: Carbon Fields section headings
 │           ├── single-program.php      ← Program detail template
@@ -361,7 +362,11 @@ Every template must flow h1 → h2 → h3 without skipping. The visual size is s
 
 ### Bootstrap class patterns
 Use the same patterns as the React prototype. Key ones:
-- Breadcrumb: `<nav aria-label="Breadcrumb"><ol class="breadcrumb">...</ol></nav>`
+- Breadcrumb: call `nsfc_breadcrumb()` (`inc/breadcrumbs.php`) — don't hand-roll one.
+  It renders `<nav aria-label="Breadcrumb" class="mb-4"><p class="breadcrumb">…</p></nav>`
+  from the page's own ancestor chain. `single-program.php` is the one exception:
+  a program's place in the hierarchy comes from its taxonomy terms, not a page parent,
+  so it builds the same markup itself.
 - Page title: `<h1 class="display-6 fw-bold mb-1">`
 - Section subtitle: `<p class="text-muted mb-4">`
 - Key detail pair: `<h2 class="h6 fw-semibold mb-1">` + `<p class="mb-0">`
@@ -407,7 +412,6 @@ Steps:
 |---|---|---|
 | Kadence Blocks | Page layout blocks | Yes |
 | Custom Post Type UI | CPT registration (UI backup — CPTs are code-registered) | Yes |
-| Yoast SEO | Breadcrumbs | Yes |
 | TablePress | Roster, schedule, pricing tables | Yes |
 | WPForms Lite | Optional: wizard form | Yes |
 | Carbon Fields | Structured meta fields (loaded via theme) | Via Composer |
@@ -446,15 +450,8 @@ so nothing here gets "fixed" prematurely while the POC is still the goal.
 None of them affect whether the IA validates.
 
 ### Domain migration — read this before changing the site URL
-Changing the domain is **not** just `siteurl` + `home`. Yoast caches absolute
-permalinks in its own tables, and Yoast supplies the breadcrumbs on every
-template — so stale rows there produce breadcrumb links pointing at the old
-domain even when WordPress itself is fully migrated. This bit us on
-2026-08-15 when the DDEV project was renamed `nsfc` → `northstar-testing`:
-the site loaded fine, but every breadcrumb still linked to `nsfc.ddev.site`.
-
-The fix that actually works — note `--all-tables`, since `wp_yoast_*` are not
-tables WordPress registers, so the default search-replace scope misses them:
+Changing the domain is **not** just `siteurl` + `home` — content holds absolute
+URLs too. Always snapshot first:
 
 ```bash
 ddev snapshot --name pre-domain-fix          # always snapshot first
@@ -467,8 +464,17 @@ never rendered as links, and rewriting them is the one thing the WP docs warn
 against during a move. `wp_posts.guid` therefore still contains 181
 `nsfc.ddev.site` strings. That is correct and should be left alone.
 
-Do the same replace for `http://` → `https://` if the scheme changes; the
-same Yoast tables cache the scheme too.
+Do the same replace for `http://` → `https://` if the scheme changes.
+
+**Historical note — why `--all-tables` is in that command.** This bit us on
+2026-08-15 when the DDEV project was renamed `nsfc` → `northstar-testing`: the
+site loaded fine, but every breadcrumb still pointed at `nsfc.ddev.site`,
+because Yoast cached absolute permalinks in its own `wp_yoast_*` tables, which
+the default search-replace scope misses. **Yoast was removed on 2026-08-15**
+and breadcrumbs now come from `nsfc_breadcrumb()`, which builds URLs at render
+time from `get_permalink()` and so cannot go stale. The six `wp_yoast_*` tables
+were left in place (inert); `--all-tables` is kept because it is the safer
+default for any plugin that behaves this way.
 
 ### Not production-ready, fix at build time
 - **`setup.sh` hardcodes `--admin_password=admin`** (and CLAUDE.md documents
@@ -491,10 +497,12 @@ same Yoast tables cache the scheme too.
   built-in empty states until `program` / `camp-session` posts are tagged to
   them. No stubs and no link-outs remain — see the URL structure section and
   `documentation/adding-a-location.md`.
-- **Template-driven pages have no `og:description`.** Yoast derives it from
-  `post_content`, which is deliberately empty on every page whose template
-  never calls `the_content()` (level hubs, camps hubs, location hubs). Set
-  real Yoast meta descriptions before any production launch.
+- **No SEO output at all.** Yoast was removed on 2026-08-15 (it was only
+  being used for breadcrumbs, and its editor UI was crowding out the content
+  fields). There are now no meta descriptions, no Open Graph tags, no schema
+  and no XML sitemap. Deliberate for an IA-validation POC; a production build
+  needs an SEO plugin chosen and configured. Breadcrumbs are unaffected —
+  they're native now and don't depend on that choice.
 - **Bootstrap 5 loads from the jsDelivr CDN** (`functions.php`), not from
   Kadence and not bundled locally. The JS bundle is a hard dependency — the
   camp detail modals and every registration dropdown are Bootstrap-native and

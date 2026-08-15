@@ -37,9 +37,7 @@ function nsfc_resolve_location_href( $program, $location_slug ) {
     <div class="col-lg-8">
 
       <?php
-      if ( function_exists( 'yoast_breadcrumb' ) ) {
-          yoast_breadcrumb( '<nav aria-label="Breadcrumb" class="mb-4"><p class="breadcrumb">', '</p></nav>' );
-      }
+      nsfc_breadcrumb();
       ?>
 
       <?php if ( ! $location ) : ?>

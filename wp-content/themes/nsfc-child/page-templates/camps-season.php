@@ -72,9 +72,7 @@ $level_badge = [
     <div class="col-lg-9">
 
       <?php
-      if ( function_exists( 'yoast_breadcrumb' ) ) {
-          yoast_breadcrumb( '<nav aria-label="Breadcrumb" class="mb-4"><p class="breadcrumb">', '</p></nav>' );
-      }
+      nsfc_breadcrumb();
       ?>
 
       <h1 class="display-6 fw-bold mb-1"><?php the_title(); ?></h1>
