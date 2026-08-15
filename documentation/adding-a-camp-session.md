@@ -14,9 +14,10 @@ before this session has anything to point to.
 
 ## First, a few concepts
 
-Every camp session gets tagged with four things. These are all "type and
-pick" search boxes, not checkboxes — start typing and choose from the list
-that appears:
+Every camp session gets tagged with four things. Each one is a **checkbox
+list** in the right-hand sidebar — tick what applies, no typing. You can tick
+more than one where it makes sense. (Camp Type's list is longer, so it has a
+**Search Terms** box above it to narrow the list.)
 
 - **Season** — Spring/Summer, Fall, or Winter. This is a fixed list that
   essentially never changes.
@@ -54,10 +55,14 @@ Scroll down to the **Camp Session Details** box:
 
 ## 3. Tag it
 
-In the right sidebar, use the four search boxes described above: type and
-select the **Season**, **Level**, **Location**, and **Camp Type** that apply.
-All four matter — a camp missing one of these won't show up correctly (or
-at all) on the camps pages.
+In the right sidebar, tick the **Season**, **Level**, **Location**, and
+**Camp Type** that apply. All four matter — a camp missing one of these won't
+show up correctly (or at all) on the camps pages.
+
+Don't use "Add New" to invent a value here. If the option you need isn't in
+the list, that's a separate task — see
+[adding-a-camp-type.md](adding-a-camp-type.md) for camp types and
+[adding-a-location.md](adding-a-location.md) for locations.
 
 ## 4. Publish
 

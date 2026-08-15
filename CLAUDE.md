@@ -114,6 +114,13 @@ northstar-testing/              ← repo root + DDEV project root (this director
 | `program` | Programs |
 | `camp-session` | Camp Sessions |
 
+All four are registered `hierarchical => true` — not because any of them nest,
+but because that is what makes the block editor render a **checkbox list**
+instead of a free-text token field. A flat taxonomy's token field creates a new
+term from whatever you type, which is how three locations originally got
+slug-style names. The flag only affects the editing UI; stored terms and
+assignments are untouched by it.
+
 | Taxonomy slug | Label | Terms |
 |---|---|---|
 | `season` | Season | `spring-summer`, `fall`, `winter` |

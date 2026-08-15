@@ -7,6 +7,14 @@ function nsfc_register_taxonomies() {
 
     $post_types = [ 'program', 'camp-session' ];
 
+    // All four taxonomies are registered hierarchical so the block editor
+    // renders a checkbox list (HierarchicalTermSelector) rather than the
+    // free-text token field it uses for flat taxonomies. None of them
+    // actually nest — this is purely about the editing UI, and about not
+    // letting a typo silently create a new term, which is how `austin` /
+    // `albert-lea` / `winona` originally got slug-style display names.
+    // Changing this flag does not touch stored terms or assignments.
+
     // Season
     register_taxonomy( 'season', $post_types, [
         'labels' => [
@@ -18,7 +26,7 @@ function nsfc_register_taxonomies() {
             'add_new_item'  => 'Add New Season',
         ],
         'public'       => true,
-        'hierarchical' => false,
+        'hierarchical' => true,
         'show_in_rest' => true,
         'rewrite'      => [ 'slug' => 'season' ],
     ] );
@@ -34,7 +42,7 @@ function nsfc_register_taxonomies() {
             'add_new_item'  => 'Add New Level',
         ],
         'public'       => true,
-        'hierarchical' => false,
+        'hierarchical' => true,
         'show_in_rest' => true,
         'rewrite'      => [ 'slug' => 'level' ],
     ] );
@@ -50,7 +58,7 @@ function nsfc_register_taxonomies() {
             'add_new_item'  => 'Add New Location',
         ],
         'public'       => true,
-        'hierarchical' => false,
+        'hierarchical' => true,
         'show_in_rest' => true,
         'rewrite'      => [ 'slug' => 'location' ],
     ] );
@@ -70,7 +78,7 @@ function nsfc_register_taxonomies() {
             'add_new_item'  => 'Add New Camp Type',
         ],
         'public'       => true,
-        'hierarchical' => false,
+        'hierarchical' => true,
         'show_in_rest' => true,
         'rewrite'      => [ 'slug' => 'camp-type' ],
     ] );
