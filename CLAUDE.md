@@ -82,16 +82,18 @@ northstar-testing/              ← repo root + DDEV project root (this director
 │           │   ├── cpt.php             ← CPT registration
 │           │   ├── taxonomies.php      ← Taxonomy registration
 │           │   ├── carbon-fields.php   ← Field group definitions
-│           │   └── location-data.php   ← Shared location-hub card copy (see "Location Hub pages")
+│           │   ├── location-data.php   ← Shared location-hub card copy (see "Location Hub pages")
+│           │   └── admin-filters.php   ← Location filter on the Programs/Camp Sessions list tables
 │           ├── single-program.php      ← Program detail template
 │           ├── archive-camp-session.php ← Orphaned Camp listing template (unlinked, left alone)
 │           └── page-templates/
 │               ├── location-chooser.php ← /youth-soccer/ location picker
 │               ├── location-hub.php    ← Per-location hub page
+│               ├── level-hub.php       ← Per-location Competitive/Recreational landing
 │               ├── season-landing.php  ← Season hub template
 │               ├── camps-hub.php       ← Per-location Camps & Clinics landing
 │               ├── camps-season.php    ← One season's camp listing
-│               └── plain.php           ← Minimal template (Home, stub pages, non-Rochester placeholders)
+│               └── plain.php           ← Minimal template (Home, stub pages)
 └── (WP core files — gitignored, downloaded by DDEV)
 ```
 
@@ -101,7 +103,7 @@ northstar-testing/              ← repo root + DDEV project root (this director
 - **Theme slug:** `nsfc-child`
 - **Parent theme:** `kadence`
 - **Text domain:** `nsfc`
-- **Bootstrap version:** 5 (loaded via Kadence — do not enqueue separately)
+- **Bootstrap version:** 5 — CSS *and* the JS bundle are enqueued in `functions.php` from the jsDelivr CDN (not supplied by Kadence). Modals and dropdowns depend on the bundle.
 
 ### CPTs and taxonomies
 | CPT slug | Label |
@@ -172,6 +174,34 @@ current `program_location` terms, but the *choice* per page is manual):
   `page-templates/camps-season.php`, `/youth-soccer/{location}/camps/` and
   its season children) — see "Camps pages" below.
 
+### Level Hub pages (self-serve, added 2026-08-15)
+`/youth-soccer/{location}/{competitive|recreational}/` — the level between a
+Location Hub and its season pages. Until 2026-08-15 this depth had **no
+template at all**: even Rochester's two pages were hand-typed Bootstrap HTML
+pasted into the editor, and the other 3 locations' were link-out placeholders.
+Both are now `page-templates/level-hub.php` (Template Name: "Level Hub").
+
+- **Fields** live in the "Level Hub Details" box
+  (`nsfc_register_level_hub_fields()` in `inc/carbon-fields.php`): Location
+  (required, from `nsfc_location_term_options()`), Intro paragraph(s), Footer
+  prompt, and a Date range + Description pair per season. Meta keys
+  `_nsfc_location`, `_nsfc_intro`, `_nsfc_footer_prompt`,
+  `_nsfc_{season}_date_range`, `_nsfc_{season}_description`.
+- **Every field except Location is optional, by design.** Blank fields emit
+  nothing at all — the 3 season cards still render and still link through.
+  That's what lets a location with no content published yet (Austin, Albert
+  Lea, Winona) use the same template as Rochester rather than a stub.
+- **Intro is one textarea, split on blank lines.** First paragraph gets
+  `lead`, last gets `mb-5`. One field reproduces both Competitive's single
+  paragraph and Recreational's three.
+- **No Level field.** The level is implicit in the page title and hierarchy;
+  season card links come from `get_permalink()`. The child Season Landing
+  pages carry their own Level field — that's the one `season-landing.php`'s
+  `tax_query` actually reads.
+- **`col-lg-9`, and "Spring / Summer" with spaces** — deliberately unlike
+  `camps-hub.php`'s `col-lg-8` and "Spring/Summer". These reproduce the
+  hand-typed markup this template replaced. Don't normalize them.
+
 ### Camps pages (self-serve, rebuilt 2026-08-10)
 Rochester's live Camps & Clinics pages used to be hand-typed static HTML
 tables, entirely disconnected from the real `camp-session` CPT posts (which
@@ -194,9 +224,17 @@ too, but was orphaned at `/camps/`, linked from nowhere. Both are now unified:
   it wouldn't affect anything visitors actually see.
 - Rochester's 4 real pages (Camps hub + 3 season pages) were switched to
   these templates with zero data loss — verified row counts and a full note
-  match against the previous static HTML before clearing it. Austin/Albert
-  Lea/Winona's Camps pages are untouched (still the northstarfc.com fallback
-  stub — see `documentation/adding-a-location.md` step 4).
+  match against the previous static HTML before clearing it. **Austin, Albert
+  Lea, and Winona were moved onto the same templates on 2026-08-15** (Phase 5
+  of `location-scoping-plan.md`), each with a Camps Hub page and 3 Camps
+  Season children; they render the empty state until camp-session posts are
+  tagged to those locations.
+- **Camps Season page titles are load-bearing.** The empty state is built as
+  `"No " . get_the_title() . " are currently scheduled."`, so these pages are
+  titled "Spring/Summer Camps" / "Fall Camps" / "Winter Camps" — not
+  "Spring/Summer". Note the slug must still be `spring-summer` (WordPress
+  would auto-generate `spring-summer-camps` from that title, which the Camps
+  Hub's card links don't match). Same for Fall and Winter.
 
 **Cards + detail modal + Level filter (rebuilt 2026-08-10, matching the
 React prototype's UX — see `prototype/src/components/camps/CampsList.jsx`):**
@@ -279,16 +317,26 @@ this project moved from a Rochester-only POC toward a real multi-location site).
 Structure:
 - `/youth-soccer/` → 4-card location chooser (Rochester, Austin, Albert Lea, Winona)
 - `/youth-soccer/{location}/` → location hub (Competitive / Recreational / Camps cards)
+- `/youth-soccer/{location}/{competitive|recreational}/` → **level hub** (WP page using
+  level-hub.php template) — see "Level Hub pages" below
 - `/youth-soccer/rochester/competitive/spring-summer/` → season landing (WP page using season-landing.php template)
 - `/youth-soccer/rochester/competitive/spring-summer/developmental-academy/` → program CPT single
 - `/youth-soccer/rochester/recreational/fall/fall-rec-league/` → program CPT single
 - `/youth-soccer/rochester/camps/` → camps hub
-- `/youth-soccer/{austin|albert-lea|winona}/{competitive|recreational|camps}/` → fallback
-  page linking to northstarfc.com — real program data only exists for Rochester in this
-  repo (no source data files for the other 3 locations). These fallback pages are meant
-  to be swapped for real season-landing.php + program CPT content once real per-location
-  data is available; the templates and taxonomy are already location-aware and ready for
-  that (see `program_location` taxonomy, and season-landing.php's `_nsfc_location` page meta).
+
+**All 4 locations use the same templates** (as of 2026-08-15, Phase 5 of
+`location-scoping-plan.md`). Austin, Albert Lea, and Winona previously had
+hand-typed pages linking out to northstarfc.com; those are gone. Each of the
+4 locations now has Competitive/Recreational on `level-hub.php` and Camps on
+`camps-hub.php`, each with 3 published season children — 48 URLs in total,
+all returning 200.
+
+**Only Rochester has real program data**, so the other 3 locations' season
+pages render the templates' built-in empty states ("No programs listed for
+this season yet." / "No {title} are currently scheduled."). That is the
+finished state, not a stub — tag a `program` or `camp-session` post with
+`austin` and it appears on Austin's pages automatically, no page edits
+required.
 - `/adult-soccer/`, `/upsl/`, `/tryouts/` → static WP pages (not location-specific)
 
 Program CPT posts use the `program_location` taxonomy (terms: `rochester`, `austin`,
@@ -309,7 +357,13 @@ Use the same patterns as the React prototype. Key ones:
 - Key detail pair: `<h2 class="h6 fw-semibold mb-1">` + `<p class="mb-0">`
 - Major section heading: `<h2 class="h6 fw-semibold mb-3">`
 - Card: `<div class="card border h-100"><div class="card-body d-flex flex-column">...`
-- Only `sm` (576px) and `md` (768px) breakpoints — never `lg`, `xl`, `xxl`
+- Only `sm` (576px) and `md` (768px) breakpoints inside components — never `xl` or `xxl`
+  (verified 2026-08-15: zero `xl`/`xxl` classes anywhere in the theme).
+  **Documented exception — the page-shell column.** Every full-page template wraps its
+  content in `col-lg-8` (or `col-lg-9` on level-hub, camps-season, archive-camp-session):
+  location-chooser, location-hub, level-hub, season-landing, camps-hub, camps-season,
+  single-program. That is the standing pattern for page width, not a series of mistakes —
+  match it in new templates, and don't "fix" the existing ones.
 
 ### Registration is always last
 On every program detail page, registration buttons are the final content section — after dates, schedule, costs, coaching, and financial aid.
@@ -423,15 +477,24 @@ same Yoast tables cache the scheme too.
   exist on this machine alone. Back up with `ddev snapshot` before risky
   work; migrating to prod means a real DB export, not a git checkout.
 - **Only Rochester has real program data.** Austin, Albert Lea, and Winona
-  are fallback stubs linking to northstarfc.com — the templates and taxonomy
-  are already location-aware and ready for real data (see the URL structure
-  section and `documentation/adding-a-location.md`).
+  use the same templates as Rochester (since 2026-08-15) and render the
+  built-in empty states until `program` / `camp-session` posts are tagged to
+  them. No stubs and no link-outs remain — see the URL structure section and
+  `documentation/adding-a-location.md`.
+- **Template-driven pages have no `og:description`.** Yoast derives it from
+  `post_content`, which is deliberately empty on every page whose template
+  never calls `the_content()` (level hubs, camps hubs, location hubs). Set
+  real Yoast meta descriptions before any production launch.
+- **Bootstrap 5 loads from the jsDelivr CDN** (`functions.php`), not from
+  Kadence and not bundled locally. The JS bundle is a hard dependency — the
+  camp detail modals and every registration dropdown are Bootstrap-native and
+  silently stop working without it. A real build should vendor it.
 
 ## What NOT to do
 
 - Do not install new plugins without checking the build plan first
 - Do not create custom CSS beyond what Kadence and Bootstrap 5 provide
-- Do not use `lg`, `xl`, or `xxl` Bootstrap breakpoints — only `sm` and `md`
+- Do not use `xl` or `xxl` Bootstrap breakpoints, or introduce new `lg` ones — only `sm` and `md` (the existing `col-lg-*` page shells are the documented exception)
 - Do not skip heading levels
 - Do not place registration CTAs above schedule, pricing, or financial aid
 - Do not modify the prototype at `/Users/jamielikely/Desktop/NorthStar/prototype/` — it is read-only for reference

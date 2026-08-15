@@ -56,35 +56,73 @@ Details** box. Fill in:
 Click **Update** to save. The location picker page and this location's own
 page both update right away — nothing else needs to be touched.
 
-## 4. Add placeholder pages for Competitive, Recreational, and Camps
+## 4. Add the Competitive, Recreational, and Camps pages
 
-Until this location has real program details ready (schedules, costs,
-rosters), create three simple placeholder pages as children of the page you
-made in step 2:
+These use the site's own templates — you don't write any layout by hand, and
+you don't need the programs to exist yet. A location with nothing scheduled
+shows a tidy "nothing scheduled yet" message on its own, and starts showing
+real programs automatically the moment any are added for this location.
 
-1. Go to **Pages → Add New** (do this 3 times, once each for Competitive,
-   Recreational, and Camps).
-2. Title: "Competitive" (or "Recreational" / "Camps").
-3. In **Page Attributes**: **Parent** → your new location's page. **Template**
-   → "Plain Page."
-4. Add the content — see below for what to put on it.
-5. Publish.
+There are three pages here, and **each one gets three season pages
+underneath it**. Twelve pages in total. It goes quickest if you finish one
+section completely (the main page, then its three seasons) before starting
+the next.
 
-**What to put on these pages depends on whether northstarfc.com (the old
-website) is still online:**
+### 4a. Competitive and Recreational
 
-- **If northstarfc.com is still live** — add a card or button linking out to
-  the matching page on northstarfc.com. The easiest way is to open one of
-  Austin's existing Competitive/Recreational/Camps pages, copy its layout,
-  and swap in the new location's name and link.
-- **If northstarfc.com has already been taken down** — do not link to it, the
-  link will be broken. Instead just put the page title and the words
-  "Details coming soon." Swap in the real program details whenever they're
-  ready — there's no deadline tied to publishing the location itself.
+Do this twice — once for Competitive, once for Recreational:
 
-Once real program details are ready for this location, these placeholder
-pages get replaced with fuller pages (ask for help setting those up when
-you're ready — they follow a different pattern).
+1. **Pages → Add New**.
+2. Title: "Competitive" (or "Recreational").
+3. **Page Attributes**: **Parent** → your new location's page.
+   **Template** → **"Level Hub."**
+4. **Publish.** (The template's own settings box only appears after the first
+   save — that's normal.)
+5. Re-open the page. In the **"Level Hub Details"** box, set **Location** to
+   your new location. Everything else in that box is optional — leave it all
+   blank for now and the three season cards still appear and still work.
+6. **Update.**
+
+Then add its three season pages:
+
+1. **Pages → Add New**.
+2. Title: **Spring/Summer**, then **Fall**, then **Winter** (one page each).
+3. **Page Attributes**: **Parent** → the Competitive (or Recreational) page
+   you just made. **Template** → **"Season Landing."**
+4. **Publish**, re-open, and in **"Season Landing Details"** set **Location**,
+   **Level** (Competitive or Recreational — match the parent page), and
+   **Season** (match the page title).
+5. **Update.**
+
+### 4b. Camps & Clinics
+
+1. **Pages → Add New**, title "Camps & Clinics", **Parent** → your location's
+   page, **Template** → **"Camps Hub."** Publish, re-open, set **Location** in
+   the **"Camps Hub Details"** box, Update.
+2. Add three season pages under it, exactly like above, but:
+   - Titles: **Spring/Summer Camps**, **Fall Camps**, **Winter Camps** — the
+     word "Camps" matters, see the warning below.
+   - **Template** → **"Camps Season."**
+   - In **"Camps Season Details"** set **Location** and **Season**.
+
+> ### ⚠️ Two things to get right on the Camps season pages
+>
+> **1. Fix the web address.** WordPress will build the address from the title,
+> giving you `spring-summer-camps` — but the Camps & Clinics page links to
+> `spring-summer`, so the link would break. On each of the three pages, find
+> the **URL / Permalink** field near the title and change it to just
+> **`spring-summer`**, **`fall`**, or **`winter`**.
+>
+> *(The Competitive and Recreational season pages don't have this problem —
+> "Spring/Summer" already becomes `spring-summer` on its own.)*
+>
+> **2. Keep "Camps" in the title.** When no camps are scheduled the page says
+> *"No **Spring/Summer Camps** are currently scheduled"* — it builds that
+> sentence from the page's title. Title the page just "Spring/Summer" and it
+> reads "No Spring/Summer are currently scheduled."
+
+When real programs or camps are added for this location later, they appear on
+these pages automatically — there's nothing to come back and rebuild.
 
 ## 5. Add it to the navigation menu
 
@@ -125,10 +163,14 @@ like everything else.)
 ## Good to know
 
 - **Adding a location doesn't build out its programs for you.** Steps 1–3
-  above create the location's main page. The Competitive, Recreational, and
-  Camps pages (step 4) are separate and have to be created by hand — and once
-  a location has real program details (not just placeholders), those pages
-  get set up differently. Ask for help when you get to that point.
+  create the location's main page; step 4 adds its Competitive, Recreational,
+  and Camps pages. Those pages start out empty and say so — which is fine to
+  publish. Adding actual programs or camps later is a separate job (see
+  `adding-a-competitive-program.md`, `adding-a-recreational-program.md`, and
+  `adding-a-camp-session.md`), and once you tag one with this location it
+  shows up on the right page by itself. **You never have to come back and
+  rebuild these pages** — they were set up the same way every other location's
+  are.
 - **The Home page card (step 6) is the one exception** — everywhere else on
   the site updates automatically once you finish steps 1–3, but the Home
   page has to be edited by hand every time.

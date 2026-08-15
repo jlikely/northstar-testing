@@ -9,11 +9,14 @@ prototype's data model (`locations: string[]` on JS objects) and doesn't
 apply here. That file was deleted; this one is the single tracking doc for
 location-scoping work.
 
-**Resuming cold?** Read this whole file, then jump to the first unchecked
-phase under Phases. Every phase below has the actual code/data needed to do
-it — you shouldn't need to re-derive anything by reading templates again,
-though it's always fine to double check against current code since this was
-all captured as of 2026-08-14.
+**All phases are complete (2026-08-15).** Nothing here is outstanding — this
+file is now a record of what was done and why, rather than a to-do list. See
+**Status** at the bottom for the known, non-blocking follow-ups.
+
+Each phase below keeps its original spec followed by an "as implemented" or
+"as executed" note recording what actually happened, including the several
+places where reality differed from the plan. When in doubt, trust the code
+over the spec text: the notes flag every known divergence.
 
 ## Why
 
@@ -69,8 +72,8 @@ initial git commit meaningful.
 
 **Met as of 2026-08-15.** The repo now has history and a remote:
 `https://github.com/jlikely/northstar-testing.git`. Work is happening on
-branch `feature/locations-update`. **Phases 1–5 are complete** — Phases 1–5 are
-done; only Phase 6 (documentation) remains.
+branch `feature/locations-update`. **All phases are complete** as of
+2026-08-15.
 
 **Git does not cover the database.** Version control tracks
 `wp-content/themes/nsfc-child/` only. Phase 4 clears `post_content` on live
@@ -678,7 +681,49 @@ and 117–127 onto `level-hub.php`/`camps-hub.php` in Phases 4–5 — clear
   (→ `camps-hub.php`). Posts 7, 8, 9, 39–44, 73–76 and 100/116/120/124 must
   be untouched.
 
-- [ ] **Phase 6 — Documentation.** Only after Phases 1–5 are live-verified.
+- [x] **Phase 6 — Documentation.** *(done 2026-08-15)*
+
+  **As done.** `CLAUDE.md`: new "Level Hub pages" section; `level-hub.php` and
+  `inc/admin-filters.php` added to the project-structure tree; URL-structure
+  section rewritten (all 4 locations on the same templates, empty state is the
+  finished state rather than a stub); Camps-pages section updated with the
+  Austin/Albert Lea/Winona rollout and the load-bearing page-title rule.
+  `documentation/adding-a-location.md`: step 4 fully rewritten from
+  "hand-build placeholders / link out to northstarfc.com" to the Level Hub +
+  Camps Hub flow with its 3 season children each, and the stale "ask for help
+  when you get to that point" note in Good to know replaced.
+
+  **Both doc-vs-code contradictions resolved, in favour of the code:**
+  - *Bootstrap.* CLAUDE.md claimed Bootstrap came from Kadence and must not be
+    enqueued separately; `functions.php` in fact enqueues both the CSS and the
+    JS bundle from jsDelivr. Corrected, and added to the deferred-production
+    list — the bundle is a hard dependency (camp modals, registration
+    dropdowns) served by a third-party CDN.
+  - *Breakpoints.* "Never `lg`, `xl`, `xxl`" was already false: `col-lg-*` is
+    the page-shell wrapper in **8** files (location-chooser, location-hub,
+    level-hub, season-landing, camps-hub, camps-season, single-program,
+    archive-camp-session). Rewritten as "no `xl`/`xxl`, `col-lg-*` page shell
+    is the standing pattern" — verified zero `xl`/`xxl` classes exist, so the
+    rest of the rule is real.
+
+  **Two new items added to CLAUDE.md's deferred-production list:** the missing
+  `og:description` on every template-driven page (Phase 4 delta 6), and the
+  Bootstrap CDN dependency.
+
+  *Checked and left alone:* `documentation/removing-a-location.md` (its only
+  "ask for help" line is about redirects, still correct) and
+  `documentation/index.md` (its "placeholder pages" line refers to Adult
+  Soccer, not locations).
+
+  **Non-obvious trap documented while writing this up:** WordPress auto-slugs
+  "Spring/Summer Camps" to `spring-summer-camps`, but `camps-hub.php` links to
+  `{parent}/spring-summer/`. An admin following the doc would publish a page
+  that 404s from its own hub. The title must stay "Spring/Summer Camps" (the
+  empty state is built from it) *and* the slug must be hand-corrected to
+  `spring-summer`. Called out in both `adding-a-location.md` and CLAUDE.md.
+  Plain "Spring/Summer" is unaffected — it already slugs to `spring-summer`.
+
+  Original phase notes follow.
   - `wordpress/CLAUDE.md`: add a "Level Hub pages" section (parallel to the
     existing "Camps pages" section), update the project-structure file tree
     to list `level-hub.php`, rewrite the "URL structure" section's fallback
@@ -788,9 +833,20 @@ undo for the code half.
 
 ## Status
 
-Last updated: 2026-08-15. Phases 0–5 complete; the git/GitHub prerequisite above
-is now met. **Phase 6 (documentation) is all that remains.** Implement one phase at a
-time, verify live, and update this checklist before moving on.
+Last updated: 2026-08-15. **All phases (0–6) complete.** Every location's
+Competitive/Recreational/Camps pages are template-driven and self-serve, the
+`program_location` taxonomy is the single source of truth, and the docs match
+the code.
+
+**Known follow-ups, none blocking** (all recorded in CLAUDE.md's
+"Production readiness" list rather than here):
+- No `og:description` on template-driven pages — Yoast derives it from
+  `post_content`, which is empty by design on those templates.
+- Bootstrap 5 loads from the jsDelivr CDN; the JS bundle is a hard dependency.
+- Only Rochester has real program data; the other 3 locations render empty
+  states until posts are tagged to them. That is the finished state.
+- The Home page's location card grid is still hand-duplicated (Kadence block,
+  can't call PHP) — see "Deferred" at the top of this file.
 
 **Reviewed and corrected 2026-08-15** against live theme code and the running
 DDEV database. Everything structural checked out — page IDs, taxonomy terms
