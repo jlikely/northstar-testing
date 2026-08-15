@@ -45,10 +45,14 @@ JS array. Reviewing the actual templates and live DB confirmed:
   no template at all, not even for Rochester. Those pages, and the 3 other
   locations' equivalent Competitive/Recreational/Camps pages, are hand-typed
   "Plain Page" HTML.
-- **Two smaller gaps surfaced during review:** taxonomy seeding in code only
-  creates the `rochester` term (the other 3 exist live only because someone
-  added them by hand in wp-admin), and there's no way to filter the
-  Programs/Camp Sessions admin list tables by location.
+- **Two smaller gaps surfaced during review** — ~~taxonomy seeding in code
+  only creates the `rochester` term (the other 3 exist live only because
+  someone added them by hand in wp-admin), and there's no way to filter the
+  Programs/Camp Sessions admin list tables by location.~~ **Both closed by
+  Phases 1 and 2 (2026-08-15).** This bullet is kept as the original review
+  finding; see those phases for what was actually done. The real gap above —
+  the missing level-hub template — is still open and is what Phases 3–5
+  address.
 
 ## Deferred (not in this plan)
 
