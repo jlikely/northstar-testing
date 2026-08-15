@@ -83,7 +83,10 @@ northstar-testing/              ← repo root + DDEV project root (this director
 │           │   ├── taxonomies.php      ← Taxonomy registration
 │           │   ├── carbon-fields.php   ← Field group definitions
 │           │   ├── location-data.php   ← Shared location-hub card copy (see "Location Hub pages")
-│           │   └── admin-filters.php   ← Location filter on the Programs/Camp Sessions list tables
+│           │   ├── admin-filters.php   ← Location filter on the Programs/Camp Sessions list tables
+│           │   └── admin-ui.php        ← Enqueues assets/admin.css on editor screens
+│           ├── assets/
+│           │   └── admin.css           ← wp-admin only: Carbon Fields section headings
 │           ├── single-program.php      ← Program detail template
 │           ├── archive-camp-session.php ← Orphaned Camp listing template (unlinked, left alone)
 │           └── page-templates/
@@ -493,7 +496,10 @@ same Yoast tables cache the scheme too.
 ## What NOT to do
 
 - Do not install new plugins without checking the build plan first
-- Do not create custom CSS beyond what Kadence and Bootstrap 5 provide
+- Do not create custom CSS beyond what Kadence and Bootstrap 5 provide.
+  **This rule is about the front end.** `assets/admin.css` is wp-admin-only
+  (enqueued by `inc/admin-ui.php` on editor screens only) and is exempt —
+  Kadence and Bootstrap don't style the Carbon Fields meta boxes at all.
 - Do not use `xl` or `xxl` Bootstrap breakpoints, or introduce new `lg` ones — only `sm` and `md` (the existing `col-lg-*` page shells are the documented exception)
 - Do not skip heading levels
 - Do not place registration CTAs above schedule, pricing, or financial aid

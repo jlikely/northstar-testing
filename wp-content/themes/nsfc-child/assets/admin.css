@@ -1,0 +1,69 @@
+/**
+ * Admin-only styling for the Carbon Fields meta boxes.
+ *
+ * Carbon Fields renders a `separator` field as a bare <h3> inside
+ * `.cf-field.cf-separator` (see vendor/htmlburger/carbon-fields —
+ * packages/core/fields/separator/index.js), with no size or spacing of its
+ * own. In a long box like "Program Details" (7 sections) that leaves every
+ * section running into the next with no visible boundary.
+ *
+ * This gives each separator a rule above it, real breathing room, and a
+ * heading that reads as a heading. Front-end CSS is unaffected — this file is
+ * only ever enqueued in wp-admin.
+ */
+
+/* ── Section headings inside Carbon Fields boxes ──────────────────────────── */
+
+.cf-field.cf-separator {
+	margin-top: 36px;
+	margin-bottom: 4px;
+	padding-top: 16px;
+	border-top: 2px solid #c3c4c7;
+}
+
+/* The first section in a box doesn't need to be pushed away from anything. */
+.cf-field.cf-separator:first-child {
+	margin-top: 4px;
+	padding-top: 0;
+	border-top: 0;
+}
+
+.cf-field.cf-separator h3 {
+	margin: 0;
+	padding: 0;
+	font-size: 16px;
+	font-weight: 600;
+	line-height: 1.4;
+	color: #1d2327;
+}
+
+/* A short accent rule under the label, so the heading reads as a title
+   rather than as another field label. */
+.cf-field.cf-separator h3::after {
+	content: "";
+	display: block;
+	width: 40px;
+	margin-top: 8px;
+	border-bottom: 3px solid #2271b1;
+}
+
+/* ── Field spacing ────────────────────────────────────────────────────────── */
+
+/* Slightly more room between top-level fields so a section's fields read as a
+   group. Deliberately excludes fields inside a complex/repeater row — those
+   are already dense by design, and spacing them out makes a repeater with
+   several rows very tall. */
+.cf-container .cf-field:not(.cf-complex__group-body .cf-field) {
+	margin-bottom: 18px;
+}
+
+/* ── Meta box titles ──────────────────────────────────────────────────────── */
+
+/* Make the box title ("Level Hub Details", "Program Details") clearly the
+   outermost level, above the section headings inside it. */
+.postbox-container .postbox > .postbox-header > .hndle,
+#normal-sortables .postbox > .postbox-header > .hndle,
+#advanced-sortables .postbox > .postbox-header > .hndle {
+	font-size: 15px;
+	font-weight: 700;
+}
