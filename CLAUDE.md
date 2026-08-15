@@ -1,0 +1,383 @@
+# CLAUDE.md — North Star FC WordPress POC
+
+This file tells Claude Code how to work in this WordPress project.
+
+## Starting on a new machine?
+
+The theme scaffold and build plan are already here — no code needs to be regenerated.
+The local WordPress environment has NOT been set up yet (Phase 0 and Phase 1 are pending).
+
+**First thing to ask Claude:** "What do I need to install to get started?"
+Claude will read `build-plan.yaml` and walk you through Phase 0 step by step.
+
+## What this project is
+
+A WordPress POC that rebuilds the North Star FC information architecture prototype (originally a React SPA). The goal is to validate the IA and navigation patterns using a zero-cost plugin stack before committing to a paid production build.
+
+**The React prototype is not in this repo.** This project used to live at
+`NorthStar/wordpress/`, alongside a `NorthStar/prototype/` sibling; as of
+2026-08-15 it was copied out to be its own repo root, so `../prototype/` no
+longer resolves. The prototype still exists on this machine at:
+
+```
+/Users/jamielikely/Desktop/NorthStar/prototype/
+```
+
+Its data files (`prototype/src/data/`) remain the authoritative source for
+program details, camp sessions, schedules, and costs when entering content.
+Nothing in this repo's code depends on that path — only the reference table
+below — so a missing prototype breaks content entry, not the site.
+
+## How to continue work across sessions
+
+**Always start here:**
+
+1. Read `build-plan.yaml` in this directory
+2. Find the first phase where `status` is not `done`
+3. Find the first task in that phase where `status` is not `done`
+4. Do that task
+5. Mark the task `done` in `build-plan.yaml` when complete
+6. Move to the next task
+
+If a task is blocked, set its `status` to `blocked` and add a `blocker` note explaining why. Do not skip ahead to later phases.
+
+**Once every phase in `build-plan.yaml` is `done`:** check `location-scoping-plan.md` (also in this directory) for active follow-on work. It's a separate tracking file, not part of `build-plan.yaml`'s phase list — started 2026-08-14 to make Competitive/Recreational/Camps fully location-aware for all 4 locations. Same resumption pattern: read the whole file, jump to the first unchecked phase.
+
+## Environment
+
+- **Local URL:** https://northstar-testing.ddev.site
+- **Admin URL:** https://northstar-testing.ddev.site/wp-admin (user: admin, pass: admin)
+- **Run WP-CLI commands:** prefix with `ddev wp` (e.g. `ddev wp post list`)
+- **Run Composer:** prefix with `ddev composer` (e.g. `ddev composer require ...`)
+- **Start/stop DDEV:** `ddev start` / `ddev stop` from this directory
+- **PHP logs:** `ddev logs`
+
+All `ddev` commands must be run from the repo root (this directory).
+
+**DDEV project name is `northstar-testing`.** It was renamed from `nsfc` when
+this repo was split out on 2026-08-15, specifically so it gets its own
+database volume rather than sharing one with the original copy still at
+`~/Desktop/NorthStar/wordpress/`. The two are fully independent — work here
+cannot affect that copy's data. Don't rename it back.
+
+`vendor/` (Carbon Fields) is gitignored, so after a fresh clone run
+`ddev composer install` before the theme will load.
+
+## Project structure
+
+```
+northstar-testing/              ← repo root + DDEV project root (this directory)
+├── .ddev/config.yaml           ← DDEV environment config (gitignored)
+├── build-plan.yaml             ← Phased build tracker (READ THIS FIRST)
+├── CLAUDE.md                   ← This file
+├── setup.sh                    ← One-time setup script (run after Phase 0)
+├── composer.json               ← Created by ddev composer init
+├── vendor/                     ← Carbon Fields lives here (gitignored)
+├── wp-content/
+│   └── themes/
+│       └── nsfc-child/         ← The only code tracked in git
+│           ├── style.css       ← Theme declaration
+│           ├── functions.php   ← Bootstrap point (loads inc/ files)
+│           ├── inc/
+│           │   ├── cpt.php             ← CPT registration
+│           │   ├── taxonomies.php      ← Taxonomy registration
+│           │   ├── carbon-fields.php   ← Field group definitions
+│           │   └── location-data.php   ← Shared location-hub card copy (see "Location Hub pages")
+│           ├── single-program.php      ← Program detail template
+│           ├── archive-camp-session.php ← Orphaned Camp listing template (unlinked, left alone)
+│           └── page-templates/
+│               ├── location-chooser.php ← /youth-soccer/ location picker
+│               ├── location-hub.php    ← Per-location hub page
+│               ├── season-landing.php  ← Season hub template
+│               ├── camps-hub.php       ← Per-location Camps & Clinics landing
+│               ├── camps-season.php    ← One season's camp listing
+│               └── plain.php           ← Minimal template (Home, stub pages, non-Rochester placeholders)
+└── (WP core files — gitignored, downloaded by DDEV)
+```
+
+## Conventions
+
+### Theme
+- **Theme slug:** `nsfc-child`
+- **Parent theme:** `kadence`
+- **Text domain:** `nsfc`
+- **Bootstrap version:** 5 (loaded via Kadence — do not enqueue separately)
+
+### CPTs and taxonomies
+| CPT slug | Label |
+|---|---|
+| `program` | Programs |
+| `camp-session` | Camp Sessions |
+
+| Taxonomy slug | Label | Terms |
+|---|---|---|
+| `season` | Season | `spring-summer`, `fall`, `winter` |
+| `program_level` | Level | `competitive`, `recreational` |
+| `program_location` | Location | `rochester`, `austin`, `albert-lea`, `winona` |
+| `camp_type` | Camp Type | 13 terms (see "Camps pages" below) — `camp-session` only |
+
+### Carbon Fields meta keys
+All program fields are stored with the prefix `_` (Carbon Fields default). Access in templates with `carbon_get_post_meta('field_name')`.
+
+### Location Hub pages (self-serve, added 2026-08-10)
+Each location's hub page (Rochester, Austin, Albert Lea, Winona, and any future
+location) is a WP Page using the "Location Hub" template
+(`page-templates/location-hub.php`), fully editable by a non-developer:
+- **Label** = the page's own title — no separate field.
+- **Location / Intro / Short description** = the "Location Details" Carbon
+  Fields box in the Page editor sidebar (registered in `inc/carbon-fields.php`
+  via `nsfc_register_location_fields()`), scoped to pages using that
+  template. Meta keys: `_nsfc_location`, `_nsfc_intro`, `_nsfc_short_desc`.
+  Location is a select sourced live from `nsfc_location_term_options()` (the
+  `program_location` taxonomy) — same helper every other location dropdown in
+  the theme uses, so `program_location` is the single source of truth for
+  which locations exist. The taxonomy term must be created before it will
+  appear in this dropdown.
+- **Which program cards show** = the "Program offerings" checkboxes in the
+  same box (meta key `_nsfc_offerings`, keys `recreational`/`competitive`/
+  `tryouts`/`camps`). Not every location offers all 4 — the card *copy* is
+  shared (`nsfc_location_programs()` in `inc/location-data.php`), but each
+  location's hub page filters that list against its own checked offerings.
+  All 4 existing locations default to all 4 checked.
+- **Display order on the `/youth-soccer/` chooser** = Page Attributes → Order.
+
+`location-chooser.php` queries all published pages using the Location Hub
+template directly (`get_posts()` by `_wp_page_template` meta) — it does not
+read a hardcoded list, so publishing a new Location Hub page makes it appear
+on the chooser automatically. `inc/location-data.php` no longer holds
+per-location content; it only holds the 4 program cards and "already
+registered" links that are genuinely identical across every location.
+
+Adding a 5th location no longer requires a theme file edit or WP-CLI: create
+the Page (Parent = Youth Soccer, Template = Location Hub), fill in the 3
+fields, publish. See `documentation/adding-a-location.md` for the full
+walkthrough. (Still requires standard non-content admin steps outside this
+field group — the `program_location` taxonomy term, nav menu item, Home page
+card, and fallback Competitive/Recreational/Camps child pages — see that doc.)
+
+**"Location" is set independently in 3 more places**, each self-serve but not
+linked to the Hub page's own slug — an admin must set each one to the matching
+slug by hand (all read from `nsfc_location_term_options()` in
+`inc/carbon-fields.php`, so the dropdown options themselves always match
+current `program_location` terms, but the *choice* per page is manual):
+- **Individual Program posts** — the native `program_location` taxonomy
+  checkbox box on each `program` post (not Carbon Fields, standard WP
+  taxonomy UI).
+- **Season Landing pages** (`page-templates/season-landing.php`,
+  `/youth-soccer/{location}/{level}/{season}/`) — "Season Landing Details"
+  box: Location / Level / Season dropdowns. Meta keys `_nsfc_location`,
+  `_nsfc_level`, `_nsfc_season` (same keys as before this was self-serve —
+  no data migration needed when this box was added).
+- **Camps Hub / Camps Season pages** (`page-templates/camps-hub.php` /
+  `page-templates/camps-season.php`, `/youth-soccer/{location}/camps/` and
+  its season children) — see "Camps pages" below.
+
+### Camps pages (self-serve, rebuilt 2026-08-10)
+Rochester's live Camps & Clinics pages used to be hand-typed static HTML
+tables, entirely disconnected from the real `camp-session` CPT posts (which
+already had full Carbon Fields data — dates, cost, ages, registration URL —
+just unused). A separate, real `archive-camp-session.php` template existed
+too, but was orphaned at `/camps/`, linked from nowhere. Both are now unified:
+- **`page-templates/camps-hub.php`** (Template Name: "Camps Hub") — the
+  `/youth-soccer/{location}/camps/` page. "Camps Hub Details" box: Location
+  dropdown, Intro paragraph. Renders 3 fixed season cards (Spring/Summer,
+  Fall, Winter) linking to this page's own child pages at `{season-slug}/`.
+- **`page-templates/camps-season.php`** (Template Name: "Camps Season") — one
+  page per season, child of the Camps Hub page, e.g.
+  `/youth-soccer/rochester/camps/spring-summer/`. "Camps Season Details" box:
+  Location + Season dropdowns, optional Note (shown below the cards, or as
+  the entire message when no camps are scheduled). Queries `camp-session`
+  posts by `season` + `program_location` (+ `program_level` if the Level
+  filter below is active), ordered by `_start_date`.
+- `archive-camp-session.php` (the orphaned `/camps/` archive) still exists
+  but remains unlinked; not part of the real site — left alone since fixing
+  it wouldn't affect anything visitors actually see.
+- Rochester's 4 real pages (Camps hub + 3 season pages) were switched to
+  these templates with zero data loss — verified row counts and a full note
+  match against the previous static HTML before clearing it. Austin/Albert
+  Lea/Winona's Camps pages are untouched (still the northstarfc.com fallback
+  stub — see `documentation/adding-a-location.md` step 4).
+
+**Cards + detail modal + Level filter (rebuilt 2026-08-10, matching the
+React prototype's UX — see `prototype/src/components/camps/CampsList.jsx`):**
+Camps Season pages render a card grid, not a table. Each card's title opens
+a Bootstrap-native modal (`data-bs-toggle="modal"`, one modal per card, zero
+custom JavaScript — same mechanism as the registration dropdown) showing
+that camp type's shared description plus the session's own dates/ages/venue/
+cost/registration link. A **Level filter** (All / Recreational / Competitive)
+sits above the grid as real query-string links (`?level=competitive`),
+server-rendered like every other toggle on the site — deliberately **not**
+the prototype's client-side instant-filter-chip behavior, to keep this the
+only site with zero custom JS. `program_level` was already tagged on every
+camp-session post, so this needed no new schema, just a template that reads
+it.
+
+**`camp_type` is a real taxonomy, not a fixed dropdown (converted
+2026-08-10).** Was a `Field::make('select', 'camp_type', ...)` on the Camp
+Session Details box with 13 hardcoded options; is now a taxonomy (like
+`program_location`) with a **term-meta** field group
+(`nsfc_register_camp_type_fields()` in `inc/carbon-fields.php`) — `intro`
+(textarea) + `points` (complex: title + text) — edited on **Camp Sessions →
+Camp Types → {type} → Edit**, not on individual camp-session posts. One
+description per type, shown in the modal for every session of that type.
+Adding a brand-new camp type is "add a term," same as adding a location.
+All 13 types have a description; 11 were ported from the prototype's
+`campDescriptions.js`, 2 (Evening Technical, Evening World Cup) were drafted
+fresh since the prototype never wrote them — worth a human review pass on
+those two specifically before treating them as final copy.
+
+### Programs: single-sourcing across seasons, and sub-programs (2026-08-10)
+Every Program post's `season` taxonomy is checkbox-based (multi-select), not
+a single value — a program that runs in more than one season should be
+**one Program post with every applicable season checked**, not a separate
+post per season. This already works via the existing `season`/`program_level`/
+`program_location` tax_query on season-landing.php: check "Fall" and
+"Spring/Summer" on one post and it shows up on both season pages
+automatically. This is the answer to "the same program appears in multiple
+seasons — how do we avoid duplicating it": check every season it applies to
+on one entry. No separate mechanism needed.
+
+**Sub-programs** — for a program that's really 2+ named offerings bundled
+under one page (e.g. "Kickstarters" = "Lil Dribblers" + "Junior Kickers"),
+each needing its own age range/cost/schedule/Register button, use the
+`sub_programs` complex field on the Program Details Carbon Fields box
+(`inc/carbon-fields.php`) instead of the normal flat fields. When a Program
+post's `sub_programs` has entries, `single-program.php` skips Key Details /
+Pricing / Schedule / Sessions / Registration entirely and renders stacked
+sub-program sections instead (CLAUDE.md's Pattern C) — fill in one or the
+other, not both. Each sub-program has: name, description, age range, a
+flexible `details[]` list (label/value pairs — Staff ratio, Curriculum, Class
+length, whatever applies), a `costs[]` table, and `sessions[]`. Each session
+has its own name, optional venue (only needed when it differs from other
+sessions — e.g. a winter indoor venue vs. a summer outdoor one), a nested
+weekly `schedule[]` (day/dates/time — a session can meet more than once a
+week), an optional note (for a not-yet-scheduled future session, e.g.
+"Schedule posted September 1"), and its own optional registration
+label/URL. **Registration renders as a dropdown built from whichever
+sessions have a registration URL filled in** — same Bootstrap
+`data-bs-toggle="dropdown"` markup as elsewhere, no custom JS. A session with
+no registration URL yet is simply left out of the dropdown until one is
+added — this is how "session posted, registration not open yet" is
+represented; don't invent a separate status field for it.
+
+This means one Program post is single-sourced across every season it runs
+in, even when its actual session dates/venues differ season to season — the
+`sessions[]` list holds all of them together rather than being duplicated
+per season page. Live example: `program/kickstarters-classes/` (post 210)
+carries Winter, Spring/Summer, and Fall sessions for both Lil Dribblers and
+Junior Kickers in one entry, replacing 3 separate hand-typed pages that used
+to exist per season.
+
+**Note:** `Field::make('text', 'value', ...)` (or any field literally named
+`value`) inside a `complex` field will fatal-error Carbon Fields — `value` is
+a reserved keyword it uses internally (`Value_Set::VALUE_PROPERTY`). Use
+something else (e.g. `detail_value`).
+
+### URL structure
+Full `:location` segment, covering all 4 North Star FC locations (as of 2026-08-10 —
+this project moved from a Rochester-only POC toward a real multi-location site).
+Structure:
+- `/youth-soccer/` → 4-card location chooser (Rochester, Austin, Albert Lea, Winona)
+- `/youth-soccer/{location}/` → location hub (Competitive / Recreational / Camps cards)
+- `/youth-soccer/rochester/competitive/spring-summer/` → season landing (WP page using season-landing.php template)
+- `/youth-soccer/rochester/competitive/spring-summer/developmental-academy/` → program CPT single
+- `/youth-soccer/rochester/recreational/fall/fall-rec-league/` → program CPT single
+- `/youth-soccer/rochester/camps/` → camps hub
+- `/youth-soccer/{austin|albert-lea|winona}/{competitive|recreational|camps}/` → fallback
+  page linking to northstarfc.com — real program data only exists for Rochester in this
+  repo (no source data files for the other 3 locations). These fallback pages are meant
+  to be swapped for real season-landing.php + program CPT content once real per-location
+  data is available; the templates and taxonomy are already location-aware and ready for
+  that (see `program_location` taxonomy, and season-landing.php's `_nsfc_location` page meta).
+- `/adult-soccer/`, `/upsl/`, `/tryouts/` → static WP pages (not location-specific)
+
+Program CPT posts use the `program_location` taxonomy (terms: `rochester`, `austin`,
+`albert-lea`, `winona`) so a program can eventually be scoped to the location it's
+offered at. season-landing.php filters its program query by all three of
+season + program_level + program_location (read from page meta `_nsfc_location`,
+`_nsfc_season`, `_nsfc_level`) — this exists specifically so that adding real Austin/
+Albert Lea/Winona programs later won't leak onto Rochester's pages or vice versa.
+
+### Heading hierarchy (enforced)
+Every template must flow h1 → h2 → h3 without skipping. The visual size is set by Bootstrap utility classes (`h6`, `h5`), not the semantic tag. Never use `.h4`, `.h5`, `.h6` on a tag that skips a level.
+
+### Bootstrap class patterns
+Use the same patterns as the React prototype. Key ones:
+- Breadcrumb: `<nav aria-label="Breadcrumb"><ol class="breadcrumb">...</ol></nav>`
+- Page title: `<h1 class="display-6 fw-bold mb-1">`
+- Section subtitle: `<p class="text-muted mb-4">`
+- Key detail pair: `<h2 class="h6 fw-semibold mb-1">` + `<p class="mb-0">`
+- Major section heading: `<h2 class="h6 fw-semibold mb-3">`
+- Card: `<div class="card border h-100"><div class="card-body d-flex flex-column">...`
+- Only `sm` (576px) and `md` (768px) breakpoints — never `lg`, `xl`, `xxl`
+
+### Registration is always last
+On every program detail page, registration buttons are the final content section — after dates, schedule, costs, coaching, and financial aid.
+
+### Financial aid
+Global text stored in WP Options (set via `ddev wp option update`). Key: `nsfc_financial_aid_steps` (JSON array of 3 steps) and `nsfc_financial_aid_note` (string).
+
+Standard wording:
+> "North Star FC believes every child should have the opportunity to play. Financial aid is available through PlayMetrics during registration."
+
+Steps:
+1. Log in to your PlayMetrics account
+2. Click the Financial Aid tab on your registration
+3. Submit your application
+
+## Data sources (prototype → WordPress)
+
+| WordPress content | Read from (relative to the prototype repo, see above) |
+|---|---|
+| Competitive programs | `prototype/src/data/competitiveSeasons.js` |
+| Recreational programs | `prototype/src/data/recreationalPrograms.js` |
+| Camp sessions | `prototype/src/data/campInstances.rochester.js` |
+| Camp descriptions | `prototype/src/data/campDescriptions.js` |
+| Camp templates (meta) | `prototype/src/data/campTemplates.js` |
+| Program catalog (for finder page) | `prototype/src/data/programCatalog.js` |
+| Recommendation rules (for finder page) | `prototype/src/data/recommendationRules.js` |
+
+## Plugin inventory
+
+| Plugin | Purpose | Activated |
+|---|---|---|
+| Kadence Blocks | Page layout blocks | Yes |
+| Custom Post Type UI | CPT registration (UI backup — CPTs are code-registered) | Yes |
+| Yoast SEO | Breadcrumbs | Yes |
+| TablePress | Roster, schedule, pricing tables | Yes |
+| WPForms Lite | Optional: wizard form | Yes |
+| Carbon Fields | Structured meta fields (loaded via theme) | Via Composer |
+
+## Commands reference
+
+```bash
+# Start the site
+ddev start
+
+# Open the site in a browser
+ddev launch
+
+# WP-CLI
+ddev wp post list --post_type=program
+ddev wp post create --post_type=program --post_title="Developmental Academy" --post_status=publish
+ddev wp term create season spring-summer
+ddev wp post term set {post_id} season spring-summer
+
+# Import/export
+ddev wp export --dir=/var/www/html/exports
+
+# Flush rewrite rules after adding CPTs
+ddev wp rewrite flush
+
+# PHP error log
+ddev logs --follow
+```
+
+## What NOT to do
+
+- Do not install new plugins without checking the build plan first
+- Do not create custom CSS beyond what Kadence and Bootstrap 5 provide
+- Do not use `lg`, `xl`, or `xxl` Bootstrap breakpoints — only `sm` and `md`
+- Do not skip heading levels
+- Do not place registration CTAs above schedule, pricing, or financial aid
+- Do not modify the prototype at `/Users/jamielikely/Desktop/NorthStar/prototype/` — it is read-only for reference

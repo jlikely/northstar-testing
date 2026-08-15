@@ -1,0 +1,39 @@
+/*
+Theme Name:   North Star FC
+Theme URI:    https://northstarfc.com
+Description:  North Star FC child theme for Kadence
+Author:       North Star FC
+Template:     kadence
+Version:      1.0.2
+Text Domain:  nsfc
+*/
+
+/* Restore Bootstrap link styling everywhere in the page — scoped to <main>,
+   NOT `.entry-content`, because only pages using Kadence's default page
+   template get an .entry-content wrapper. Every custom PHP template we've
+   built (season-landing.php, single-program.php, location-hub.php,
+   location-chooser.php, archive-camp-session.php, ...) bypasses it entirely,
+   so a fix scoped to .entry-content silently misses most of the site's card
+   grids. <main id="inner-wrap"> comes from Kadence's header.php and wraps
+   every template's output, custom or not — this is the one shared ancestor.
+   Kadence's own CSS otherwise strips link styling site-wide — `h1 a`..`h6 a
+   { color:inherit; text-decoration:none }` (matches every card title, since
+   they all sit inside a heading) and `.entry-content a { text-decoration:none
+   }` (default-template pages only). Mirrors the prototype's index.css
+   approach: underline body/card links, but not buttons, nav links, dropdown
+   items, or breadcrumbs. */
+main a:not(.btn):not(.nav-link):not(.dropdown-item) {
+  color: var(--bs-link-color, #0d6efd);
+  text-decoration: underline;
+}
+
+main a:not(.btn):not(.nav-link):not(.dropdown-item):hover {
+  color: var(--bs-link-hover-color, #0a58ca);
+}
+
+/* Breadcrumbs stay unstyled, like the prototype's Breadcrumb.jsx. */
+main .breadcrumb a,
+main nav[aria-label="Breadcrumb"] a {
+  color: inherit;
+  text-decoration: none;
+}

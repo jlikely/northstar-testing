@@ -1,0 +1,32 @@
+# Ignore WordPress core — only the child theme is tracked
+/wp-admin/
+/wp-includes/
+/wp-*.php
+/xmlrpc.php
+/index.php
+/license.txt
+/readme.html
+
+# WP config (contains DB credentials)
+wp-config.php
+wp-config-local.php
+
+# Ignore all themes and plugins EXCEPT our child theme.
+# NOTE the trailing /* on themes — excluding the directory itself
+# (/wp-content/themes/) stops git descending into it, so the negation
+# below can never match and the child theme silently goes untracked.
+/wp-content/plugins/
+/wp-content/themes/*
+!/wp-content/themes/nsfc-child/
+
+# Ignore uploads
+/wp-content/uploads/
+
+# Ignore vendor (Composer managed)
+/vendor/
+
+# DDEV
+.ddev/
+
+# macOS
+.DS_Store
