@@ -69,8 +69,8 @@ initial git commit meaningful.
 
 **Met as of 2026-08-15.** The repo now has history and a remote:
 `https://github.com/jlikely/northstar-testing.git`. Work is happening on
-branch `feature/locations-update`. **Phases 1–5 are unblocked** — Phases 1–4 are
-done; Phase 5 is the next actionable step.
+branch `feature/locations-update`. **Phases 1–5 are complete** — Phases 1–5 are
+done; only Phase 6 (documentation) remains.
 
 **Git does not cover the database.** Version control tracks
 `wp-content/themes/nsfc-child/` only. Phase 4 clears `post_content` on live
@@ -569,8 +569,38 @@ and 117–127 onto `level-hub.php`/`camps-hub.php` in Phases 4–5 — clear
   `level-hub.php` drifted from spec: stop and fix the template, don't accept
   it. This is the checkpoint that protects the 27-page Phase 5 rollout.
 
-- [ ] **Phase 5 — Non-Rochester rollout (Austin, Albert Lea, Winona).**
-  Only start once Phase 4 is verified clean.
+- [x] **Phase 5 — Non-Rochester rollout (Austin, Albert Lea, Winona).**
+  *(done 2026-08-15)*
+
+  **As executed.** Driven by `backups/phase5-rollout.php` (`ddev wp eval-file`),
+  which encodes the parent-then-children ordering below and is idempotent —
+  it reuses an existing child at the same slug+parent rather than creating a
+  duplicate, so a re-run is safe. Page count 51 → 78 (27 new).
+
+  **New page IDs**, for anyone resuming cold (children listed
+  spring-summer / fall / winter):
+  | Location | Competitive hub → children | Recreational hub → children | Camps hub → children |
+  |---|---|---|---|
+  | Austin | 117 → 218/219/220 | 118 → 222/223/224 | 119 → 226/227/228 |
+  | Albert Lea | 121 → 230/231/232 | 122 → 234/235/236 | 123 → 238/239/240 |
+  | Winona | 125 → 242/243/244 | 126 → 246/247/248 | 127 → 250/251/252 |
+
+  *Verified:* all 48 youth-soccer URLs across the 4 locations return 200 with
+  zero PHP errors; `ddev logs` clean. **The camps empty state reads
+  grammatically on all 9 pages** — "No Spring/Summer Camps are currently
+  scheduled." — which is the whole reason the titles were specified. Season
+  landings show "No programs listed for this season yet." `_wp_page_template`
+  changed on exactly the 9 intended hubs; posts 7, 8, 9, 39–44, 73–76 and
+  100/116/120/124 all still carry their previous templates. Rochester
+  unaffected (copy intact, 3/6/5 program links, 24 camp modals). Location
+  subtitles and back-links render "Austin" / "Albert Lea" / "Winona" properly
+  — the payoff from Phase 1's term-name repair, which would otherwise have
+  shown lowercase slugs on all 9 pages here.
+
+  *One false alarm:* grepping the retrofitted pages for `northstarfc.com`
+  returns 1 hit each. That's the `mailto:info@northstarfc.com` Contact us
+  button in the template — present on Rochester too, not a surviving
+  link-out placeholder.
 
   **Take a second DB export first: `ddev export-db --file=pre-phase5.sql.gz`.**
   Phase 4's export does not cover this phase. Nine more pages get their
@@ -758,8 +788,8 @@ undo for the code half.
 
 ## Status
 
-Last updated: 2026-08-15. Phases 0–4 complete; the git/GitHub prerequisite above
-is now met. **Phase 5 is the next actionable step.** Implement one phase at a
+Last updated: 2026-08-15. Phases 0–5 complete; the git/GitHub prerequisite above
+is now met. **Phase 6 (documentation) is all that remains.** Implement one phase at a
 time, verify live, and update this checklist before moving on.
 
 **Reviewed and corrected 2026-08-15** against live theme code and the running
