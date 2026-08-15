@@ -80,7 +80,12 @@ function nsfc_register_taxonomies() {
 function nsfc_seed_taxonomy_terms() {
     $seasons   = [ 'spring-summer' => 'Spring/Summer', 'fall' => 'Fall', 'winter' => 'Winter' ];
     $levels    = [ 'competitive' => 'Competitive', 'recreational' => 'Recreational' ];
-    $locations = [ 'rochester' => 'Rochester' ];
+    $locations = [
+        'rochester'  => 'Rochester',
+        'austin'     => 'Austin',
+        'albert-lea' => 'Albert Lea',
+        'winona'     => 'Winona',
+    ];
     $camp_types = [
         'recreational'      => 'Recreational',
         'technical'         => 'Technical',

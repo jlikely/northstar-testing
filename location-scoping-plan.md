@@ -66,7 +66,7 @@ initial git commit meaningful.
 **Met as of 2026-08-15.** The repo now has history and a remote:
 `https://github.com/jlikely/northstar-testing.git`. Work is happening on
 branch `feature/locations-update`. **Phases 1–5 are unblocked** — Phase 1 is
-the next actionable step.
+done; Phase 2 is the next actionable step.
 
 **Git does not cover the database.** Version control tracks
 `wp-content/themes/nsfc-child/` only. Phase 4 clears `post_content` on live
@@ -129,7 +129,7 @@ and 117–127 onto `level-hub.php`/`camps-hub.php` in Phases 4–5 — clear
   `location-scoping-plan.md` deleted (confirmed with the user: prototype-only,
   never implemented, not applicable to WordPress).
 
-- [ ] **Phase 1 — Taxonomy seeding fix.**
+- [x] **Phase 1 — Taxonomy seeding fix.** *(done 2026-08-15)*
   `nsfc_seed_taxonomy_terms()` in `inc/taxonomies.php` currently only seeds
   the `rochester` term:
   ```php
@@ -148,6 +148,34 @@ and 117–127 onto `level-hub.php`/`camps-hub.php` in Phases 4–5 — clear
   no-op against the current live DB and only matters for a fresh install.
   **Verify:** `ddev wp term list program_location` still shows exactly 4
   terms (no duplicates); `ddev logs` shows no PHP errors after reload.
+
+  **Also done in this phase — live term-name repair (found during
+  implementation, not anticipated above).** The three hand-added terms had
+  been saved with slug-style *names*, not display names: `austin`,
+  `albert-lea`, `winona` (only `rochester` was correct). That matters because
+  `nsfc_location_term_options()` returns `$term->slug => $term->name`, and
+  `camps-hub.php:39` / `camps-season.php:22` render that name as the page
+  subtitle and back-link — as will `level-hub.php` per Phase 3. Left alone,
+  Phase 5 would have published pages subtitled "austin" with a "← austin"
+  back-link, and Phase 2's admin filter would have listed lowercase slugs.
+
+  The `term_exists()` guards mean the code change above **cannot** fix this —
+  existing terms are skipped, so the corrected names never get inserted. It
+  needed a one-time update, names only, slugs untouched:
+  ```sh
+  ddev wp term update program_location austin     --by=slug --name="Austin"
+  ddev wp term update program_location albert-lea --by=slug --name="Albert Lea"
+  ddev wp term update program_location winona     --by=slug --name="Winona"
+  ```
+  **This is a database change and is therefore not in git** — this note is
+  the only record of it. A restore from any DB dump taken before 2026-08-15
+  will reintroduce the lowercase names; re-run the three commands if so.
+
+  *Verified:* 4 terms, no duplicates after `init` re-ran; Rochester still 44
+  tagged posts; 16 programs / 28 camp sessions unchanged;
+  `nsfc_location_term_options()` returns all four proper display names;
+  `/youth-soccer/rochester/camps/` still renders "Rochester" and "← Rochester"
+  at HTTP 200 with zero PHP errors in the body or `ddev logs`.
 
 - [ ] **Phase 2 — Admin location filter.**
   No `restrict_manage_posts` hook exists anywhere in the theme today
@@ -618,8 +646,8 @@ undo for the code half.
 
 ## Status
 
-Last updated: 2026-08-15. Phase 0 complete; the git/GitHub prerequisite above
-is now met. **Phase 1 is the next actionable step.** Implement one phase at a
+Last updated: 2026-08-15. Phases 0 and 1 complete; the git/GitHub prerequisite above
+is now met. **Phase 2 is the next actionable step.** Implement one phase at a
 time, verify live, and update this checklist before moving on.
 
 **Reviewed and corrected 2026-08-15** against live theme code and the running
