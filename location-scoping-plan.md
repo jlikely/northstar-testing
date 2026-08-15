@@ -58,19 +58,32 @@ JS array. Reviewing the actual templates and live DB confirmed:
 
 ## Prerequisite — version control
 
-This repo has no git history. A GitHub repo is being set up before any code
-phase (1–5) below starts, so this work is tracked and reversible. Phase 0
-(this file + deleting the old root plan) is the exception — it ran first, as
-plain file operations, to make the initial git commit meaningful.
+A GitHub repo was required before any code phase (1–5) below started, so this
+work is tracked and reversible. Phase 0 (this file + deleting the old root
+plan) was the exception — it ran first, as plain file operations, to make the
+initial git commit meaningful.
 
-**Still unmet as of 2026-08-15** — re-confirmed: no `.git` directory, no
-commits, no remote. Phases 1–5 stay blocked until this is done.
+**Met as of 2026-08-15.** The repo now has history and a remote:
+`https://github.com/jlikely/northstar-testing.git`. Work is happening on
+branch `feature/locations-update`. **Phases 1–5 are unblocked** — Phase 1 is
+the next actionable step.
 
 **Git does not cover the database.** Version control tracks
 `wp-content/themes/nsfc-child/` only. Phase 4 clears `post_content` on live
-pages and Phase 5 creates 27 pages — none of that is recoverable from git.
-Take `ddev export-db --file=pre-phase4.sql.gz` before Phase 4, and dump posts
-7/8 `post_content` to files as a copy-paste fallback.
+pages and Phase 5 clears 9 more and creates 27 — none of that is recoverable
+from git, no matter how clean the commit history is. **Two separate exports
+are required**, because Phase 4's snapshot is already stale by the time
+Phase 5 destroys different content:
+
+```sh
+ddev export-db --file=pre-phase4.sql.gz   # before Phase 4 (posts 7, 8)
+ddev export-db --file=pre-phase5.sql.gz   # before Phase 5 (posts 117–127)
+```
+
+Also dump the affected `post_content` values to individual files as a
+copy-paste fallback — posts 7/8 before Phase 4, posts 117/118/119, 121/122/123,
+125/126/127 before Phase 5. Those nine hold the only copy of the
+northstarfc.com link-out markup that exists anywhere.
 
 ## Reference — page/post IDs captured live (2026-08-14, via `ddev wp`)
 
@@ -182,6 +195,16 @@ and 117–127 onto `level-hub.php`/`camps-hub.php` in Phases 4–5 — clear
   dropdown uses). Explicit `pre_get_posts` handling rather than relying on
   WP's implicit `$_GET` query-var behavior in admin list queries, for
   predictability.
+
+  **If you create `inc/admin-filters.php`, add a matching `require_once` to
+  `functions.php`.** That file lists its four `inc/` includes explicitly
+  (`cpt.php`, `taxonomies.php`, `carbon-fields.php`, `location-data.php`) —
+  a new file in `inc/` is not auto-loaded and will silently do nothing.
+  Appending to `inc/taxonomies.php` avoids this entirely; either location
+  works at runtime, because `nsfc_location_term_options()` is defined at the
+  top level of `inc/carbon-fields.php` with no "Carbon Fields is loaded"
+  guard around it, so it exists long before `restrict_manage_posts` fires
+  regardless of include order.
   **Verify:** in wp-admin, both list screens show a Location dropdown;
   filtering to Rochester returns 44 posts combined across both post types;
   filtering to Austin/Albert Lea/Winona returns 0 (until Phase 5+ content
@@ -328,10 +351,24 @@ and 117–127 onto `level-hub.php`/`camps-hub.php` in Phases 4–5 — clear
   "Season Landing Details" box — that is the one `season-landing.php`'s
   `tax_query` actually reads.
 
-  **Verify:** create one throwaway test page on the Level Hub template,
-  confirm the fields appear in wp-admin and the page renders correctly
-  (cards present, conditional omission works when a field is left blank)
-  before touching any real content in Phase 4. Delete the test page after.
+  **Verify** — this is a code-only phase, so prove it on a throwaway page,
+  never on posts 7/8:
+  1. Create a test page (any title, no parent), set Template = Level Hub,
+     **save once** — Carbon Fields containers scoped with
+     `->where( 'post_template', ... )` only appear after the template is
+     saved, so an empty sidebar before saving is expected, not a bug.
+  2. Confirm the "Level Hub Details" box appears with all 12 fields, and
+     that the Location dropdown lists exactly the 4 live `program_location`
+     terms (proves `nsfc_location_term_options()` is wired, not hardcoded).
+  3. Fill in **only** Location + one season's date range. Load the page and
+     confirm: all 3 cards still render with their labels, the filled card
+     shows its date line, the other two show label only, and no PHP notice
+     appears for the blank fields. This conditional-omission behavior is
+     exactly what Phase 5's 24 blank-field pages depend on — if it warns or
+     renders empty `<p>` tags here, fix it now, not in Phase 5.
+  4. `ddev logs` shows no PHP errors after the render.
+  5. Delete the test page (and empty Trash — a lingering Level Hub page in
+     Trash muddies Phase 5's `_wp_page_template` spot-checks).
 
 - [ ] **Phase 4 — Retrofit Rochester (posts 7 and 8) onto Level Hub.**
   Highest-risk phase — touches live, currently-working pages. **Take the DB
@@ -394,13 +431,26 @@ and 117–127 onto `level-hub.php`/`camps-hub.php` in Phases 4–5 — clear
 
 - [ ] **Phase 5 — Non-Rochester rollout (Austin, Albert Lea, Winona).**
   Only start once Phase 4 is verified clean.
+
+  **Take a second DB export first: `ddev export-db --file=pre-phase5.sql.gz`.**
+  Phase 4's export does not cover this phase. Nine more pages get their
+  `post_content` cleared here (117/118/119, 121/122/123, 125/126/127), and
+  those pages hold the *only* copy of the northstarfc.com link-out markup —
+  it is not in git and not in the Phase 4 dump if Phase 4 has already been
+  committed. Dump those nine `post_content` values to files as well, same
+  copy-paste fallback used for posts 7/8.
+
+  **Page titles are specified below and are not cosmetic — see the Camps
+  note.** Create pages parent-first, per location.
+
   - **Competitive/Recreational** (posts 117, 118, 121, 122, 125, 126):
     switch to `level-hub.php`, clear `post_content`, set `nsfc_location` per
     page (matching the table above), leave `nsfc_intro`,
     `nsfc_footer_prompt`, and all 6 season-copy fields blank.
   - **18 new child pages** (3 seasons × 2 levels × 3 locations): publish
     under each of the 6 pages above, template `season-landing.php`, slugs
-    `spring-summer` / `fall` / `winter`, "Season Landing Details" fields set
+    `spring-summer` / `fall` / `winter`, **titles `Spring/Summer` / `Fall` /
+    `Winter`** (matching posts 39–44), "Season Landing Details" fields set
     to the matching location/level/season. Zero Program posts tagged to
     these locations → existing "No programs listed for this season yet."
     fallback applies automatically, no template change needed.
@@ -408,18 +458,43 @@ and 117–127 onto `level-hub.php`/`camps-hub.php` in Phases 4–5 — clear
     `post_content`, set `nsfc_location` per page.
   - **9 new child pages** (3 seasons × 3 locations): publish under each
     Camps page above, template `camps-season.php`, slugs `spring-summer` /
-    `fall` / `winter`, "Camps Season Details" fields set to matching
-    location/season. Zero `camp-session` posts tagged → existing "No camps
-    are currently scheduled. Check back soon." fallback applies as-is.
+    `fall` / `winter`, **titles `Spring/Summer Camps` / `Fall Camps` /
+    `Winter Camps`** (matching posts 73–75). "Camps Season Details" fields
+    set to matching location/season. Zero `camp-session` posts tagged → the
+    existing empty-state fallback applies as-is, no template change needed.
+
+  **Why the Camps titles matter.** `camps-season.php` (line ~211) builds its
+  empty state by interpolating the page's own title:
+  ```php
+  No <?php echo esc_html( get_the_title() ); ?> are currently scheduled. Check back soon.
+  ```
+  There is no literal "No camps are currently scheduled" string in the theme
+  — don't grep for one. Titling these pages `Spring/Summer` instead of
+  `Spring/Summer Camps` yields *"No Spring/Summer are currently scheduled."*
+  on all 9 pages. Since the empty state **is** the entire visible content of
+  every page created in this phase, this is the most visitor-facing detail in
+  the rollout. Rochester's posts 73/74/75 are titled correctly already and
+  are the reference.
+
+  **Order of operations — parent before children, one location at a time.**
+  `level-hub.php`'s season cards link to `{parent-permalink}/{season}/`
+  unconditionally, with no `get_page_by_path()` existence check (unlike
+  `location-hub.php`'s Opportunity Finder card, which is gated). Retrofitting
+  all 9 hub pages first would leave 27 dead links live until the children are
+  published. Do Austin fully (retrofit 117 → publish its 3 children → 118 →
+  its 3 → 119 → its 3), verify, then Albert Lea, then Winona.
 
   This replaces the current northstarfc.com link-out placeholder pages with
   a clean empty state (confirmed with the user: acceptable for this
   dev/IA-validation POC, matches the plan's original empty-query-fallback
   intent rather than a hardcoded per-location card).
+
   **Verify:** click through all 3 locations end-to-end — Location Hub →
   Competitive/Recreational/Camps → each season (empty state, no 404s) →
-  back-link works. Expect no Opportunity Finder card on these 3 locations
-  (page 76 is Rochester-only — see the Reference section; correct, not a bug).
+  back-link works. Read the camps empty-state sentence on at least one page
+  per location and confirm it reads as a grammatical sentence. Expect no
+  Opportunity Finder card on these 3 locations (page 76 is Rochester-only —
+  see the Reference section; correct, not a bug).
 
   Confirm no *unintended* template changes by diffing the templates
   themselves rather than the page list, which now legitimately contains 27
@@ -457,20 +532,95 @@ and 117–127 onto `level-hub.php`/`camps-hub.php` in Phases 4–5 — clear
     `level-hub.php` will too. The rule is already false in practice — either
     amend it to allow `lg` for page-shell containers, or normalize the
     templates. Not blocking; just stop the doc from contradicting the code.
+  - **Second doc-vs-code contradiction, same fix pass:** CLAUDE.md's
+    Conventions section says Bootstrap 5 is "loaded via Kadence — do not
+    enqueue separately," but `functions.php` enqueues both the Bootstrap CSS
+    and the `bootstrap.bundle.min.js` script directly from jsDelivr. The
+    bundle is a genuine runtime dependency — the camps detail modals and
+    every registration dropdown are Bootstrap-native and stop working
+    without it. Correct the convention text, and add the CDN to CLAUDE.md's
+    "Production readiness (deliberately deferred)" list: a real build should
+    bundle Bootstrap locally rather than depend on a third-party CDN.
   - Mark this file's Phases 1–6 complete.
 
 ## Verification summary (also embedded per-phase above)
 
-No `npm` build for the WP theme. Standard proof for this project: `ddev wp`
-CLI checks, `ddev logs` for PHP errors, and authenticated wp-admin/front-end
-checks — not just "the code looks right." Don't proceed to the next phase
-until the current one's verification is clean.
+No `npm` build and no test suite for the WP theme. Standard proof for this
+project: `ddev wp` CLI checks, `ddev logs` for PHP errors, and authenticated
+wp-admin/front-end checks — not just "the code looks right." **Don't proceed
+to the next phase until the current one's verification is clean.**
+
+### Gate per phase
+
+| Phase | Passes when |
+|---|---|
+| 1 | `ddev wp term list program_location --fields=slug` returns exactly 4 slugs, no duplicates |
+| 2 | Location dropdown appears on both admin list screens; Rochester filters to 44 posts across the two types; other 3 return 0 |
+| 3 | Throwaway page renders 3 cards with blank fields, no PHP notices, then is deleted and Trash emptied |
+| 4 | `curl` diff of posts 7 and 8 contains **only** the 4 documented deltas |
+| 5 | All 27 new pages return HTTP 200 with a grammatical empty state; only the 9 intended `_wp_page_template` values changed |
+| 6 | No doc in `documentation/` or CLAUDE.md still describes non-Rochester locations as link-outs |
+
+### Smoke test — run after Phase 4 and again after Phase 5
+
+Catches the two failure modes most likely to slip past a click-through: a
+page that 404s because a child slug doesn't exist yet, and a page that
+returns 200 while PHP-erroring into the markup.
+
+```sh
+BASE=https://northstar-testing.ddev.site
+
+# Every URL this plan touches or creates. After Phase 4, only rochester lines apply.
+for loc in rochester austin albert-lea winona; do
+  for lvl in competitive recreational; do
+    for s in "" spring-summer fall winter; do
+      echo "$BASE/youth-soccer/$loc/$lvl/$s"
+    done
+  done
+  for s in "" spring-summer fall winter; do
+    echo "$BASE/youth-soccer/$loc/camps/$s"
+  done
+done | while read -r url; do
+  code=$(curl -s -o /tmp/body -w '%{http_code}' "$url")
+  err=$(grep -ciE 'Fatal error|Warning:|Notice:|Deprecated:' /tmp/body)
+  printf '%s  errors=%s  %s\n' "$code" "$err" "$url"
+done
+```
+
+Every line must read `200 errors=0`. A `404` means a child page is missing or
+a slug is wrong; a non-zero `errors` count means PHP is warning into the
+page — most likely a blank Carbon Fields value being used unguarded, which
+is precisely the condition Phase 5's 24 blank-field pages create and Phase
+3's step 3 is designed to catch early.
+
+Then confirm the log is clean, since PHP can log without printing:
+
+```sh
+ddev logs | grep -iE 'PHP (Fatal|Warning|Notice|Deprecated)' | tail -20
+```
+
+### Rollback
+
+Each phase is independently reversible, but by *different* means — theme
+changes via git, content changes only via the DB exports:
+
+- **Phases 1–3** (code only): `git checkout -- wp-content/themes/nsfc-child/`
+- **Phase 4** (posts 7/8): `ddev import-db --file=pre-phase4.sql.gz`
+- **Phase 5** (posts 117–127 + 27 new): `ddev import-db --file=pre-phase5.sql.gz`
+
+Importing a dump is a **full database replace**, not a merge — it discards
+every content change made since that dump was taken. If Phase 5 goes wrong
+after unrelated content edits have happened, prefer restoring the nine
+`post_content` files by hand over importing `pre-phase5.sql.gz`.
+
+Commit after each phase's gate passes, so `git checkout` stays a meaningful
+undo for the code half.
 
 ## Status
 
-Last updated: 2026-08-15. Phase 0 complete. Phases 1–6 awaiting the
-git/GitHub prerequisite above, then implement one at a time, verify live,
-update this checklist before moving on.
+Last updated: 2026-08-15. Phase 0 complete; the git/GitHub prerequisite above
+is now met. **Phase 1 is the next actionable step.** Implement one phase at a
+time, verify live, and update this checklist before moving on.
 
 **Reviewed and corrected 2026-08-15** against live theme code and the running
 DDEV database. Everything structural checked out — page IDs, taxonomy terms
@@ -489,3 +639,31 @@ and counts, template assignments, the Phase 1/2 code gaps, and all of Phase
    verification rewritten (it would have false-positived on it).
 5. **Git-vs-database gap** called out — git covers theme code only, so a DB
    export is now an explicit Phase 4 prerequisite.
+
+**Second review pass, 2026-08-15** — re-verified against live theme code, the
+running DDEV database, and the actual page titles in `wp_posts`. Six further
+gaps closed, all in the "would have shipped and looked fine until someone
+read the page" category:
+
+6. **Camps child page titles specified.** `camps-season.php` interpolates
+   `get_the_title()` into its empty-state sentence, so the 9 new Camps pages
+   must be titled "Spring/Summer Camps" etc., not "Spring/Summer" — otherwise
+   every one of them reads "No Spring/Summer are currently scheduled." Since
+   the empty state is the whole visible page in Phase 5, this was the single
+   most visitor-facing defect in the plan. The 18 season-landing pages take
+   the plain titles, matching posts 39–44.
+7. **The quoted camps fallback string was wrong** — no literal "No camps are
+   currently scheduled" exists in the theme; it's title-interpolated. Fixed
+   so nobody greps for it and concludes the template is broken.
+8. **Second DB export added before Phase 5.** Phase 4's dump doesn't cover
+   the 9 pages Phase 5 clears, which hold the only copy of the
+   northstarfc.com link-out markup.
+9. **Phase 5 order of operations pinned** — parent-then-children, one
+   location at a time. `level-hub.php`'s season cards have no
+   `get_page_by_path()` guard, so retrofitting all 9 hubs first would leave
+   27 dead links live.
+10. **Phase 2 include gap** — a new `inc/admin-filters.php` would silently
+    never load; `functions.php` lists its includes explicitly.
+11. **Bootstrap CDN contradiction** added to Phase 6 alongside the existing
+    breakpoint one, plus a runnable smoke test and a rollback section in
+    Verification.
