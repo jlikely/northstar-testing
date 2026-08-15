@@ -22,6 +22,7 @@ require_once get_stylesheet_directory() . '/inc/cpt.php';
 require_once get_stylesheet_directory() . '/inc/taxonomies.php';
 require_once get_stylesheet_directory() . '/inc/carbon-fields.php';
 require_once get_stylesheet_directory() . '/inc/location-data.php';
+require_once get_stylesheet_directory() . '/inc/admin-filters.php';
 
 // Enqueue parent theme styles + Bootstrap 5 (via CDN — all templates are built with Bootstrap utility classes)
 add_action( 'wp_enqueue_scripts', function () {

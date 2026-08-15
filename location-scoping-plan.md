@@ -65,8 +65,8 @@ initial git commit meaningful.
 
 **Met as of 2026-08-15.** The repo now has history and a remote:
 `https://github.com/jlikely/northstar-testing.git`. Work is happening on
-branch `feature/locations-update`. **Phases 1–5 are unblocked** — Phase 1 is
-done; Phase 2 is the next actionable step.
+branch `feature/locations-update`. **Phases 1–5 are unblocked** — Phases 1–2 are
+done; Phase 3 is the next actionable step.
 
 **Git does not cover the database.** Version control tracks
 `wp-content/themes/nsfc-child/` only. Phase 4 clears `post_content` on live
@@ -177,7 +177,7 @@ and 117–127 onto `level-hub.php`/`camps-hub.php` in Phases 4–5 — clear
   `/youth-soccer/rochester/camps/` still renders "Rochester" and "← Rochester"
   at HTTP 200 with zero PHP errors in the body or `ddev logs`.
 
-- [ ] **Phase 2 — Admin location filter.**
+- [x] **Phase 2 — Admin location filter.** *(done 2026-08-15)*
   No `restrict_manage_posts` hook exists anywhere in the theme today
   (confirmed by grep) and WP core's `WP_Posts_List_Table::extra_tablenav()`
   only auto-builds filters for category/date/format, not custom taxonomies
@@ -237,6 +237,33 @@ and 117–127 onto `level-hub.php`/`camps-hub.php` in Phases 4–5 — clear
   filtering to Rochester returns 44 posts combined across both post types;
   filtering to Austin/Albert Lea/Winona returns 0 (until Phase 5+ content
   exists).
+
+  **As implemented.** Went into a new `inc/admin-filters.php`, with the
+  matching `require_once` added to `functions.php` (5th include). Small
+  additions over the sketch above: a shared `nsfc_admin_filter_post_types()`
+  so the post-type list isn't repeated in both hooks, a `screen-reader-text`
+  `<label>` matching core's filter markup, `sanitize_key()` on the `$_GET`
+  value in both functions, and an early return when
+  `nsfc_location_term_options()` is empty (a fresh install before terms seed).
+
+  *Verified* by logging in over `curl` and reading the real list tables, not
+  just eyeballing the code — Programs 16/16 for Rochester and 0 for the other
+  three, Camp Sessions 28/28 and 0, i.e. the expected 44 combined. An invalid
+  slug (`?program_location=bogus-slug`) returns the standard "no items" state
+  rather than erroring. `ddev logs` clean.
+
+  **Two false alarms recorded so they aren't re-investigated later:**
+  1. Grepping wp-admin HTML for `Warning:` always matches — it's a Yoast SEO
+     JS translation string (`variable_warning`), present on every admin page
+     and unrelated to PHP. The front-end smoke test in Verification below is
+     unaffected (front-end pages don't load it), but don't reuse that grep
+     against wp-admin.
+  2. `edit.php?post_type=page&program_location=rochester` returns 0 pages.
+     This is **not** the filter leaking — `pre_get_posts` above returns early
+     for any post type other than `program`/`camp-session`. It's WP core's
+     implicit public-taxonomy query-var handling in `WP_Query`; `?season=fall`
+     and `?program_level=competitive` do exactly the same on that screen and
+     predate this phase. No UI constructs such a URL, so it's left alone.
 
 - [ ] **Phase 3 — Build the Level Hub template + fields (code only, not
   applied to any live page yet).**
@@ -646,8 +673,8 @@ undo for the code half.
 
 ## Status
 
-Last updated: 2026-08-15. Phases 0 and 1 complete; the git/GitHub prerequisite above
-is now met. **Phase 2 is the next actionable step.** Implement one phase at a
+Last updated: 2026-08-15. Phases 0–2 complete; the git/GitHub prerequisite above
+is now met. **Phase 3 is the next actionable step.** Implement one phase at a
 time, verify live, and update this checklist before moving on.
 
 **Reviewed and corrected 2026-08-15** against live theme code and the running
