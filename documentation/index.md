@@ -44,6 +44,21 @@ or code needed for anything listed below. Grouped by area.
   introducing a genuinely new *kind* of camp and writing its shared
   description (shown in every session of that type's "more info" popup).
 
+---
+
+## Everyday tip: filtering by location
+
+**Programs → All Programs** and **Camp Sessions → All Camp Sessions** each
+have a **Location** dropdown at the top of the list, next to the date filter.
+Pick a location and click **Filter** to see only that location's entries.
+
+This is the quickest way to answer "what does Austin actually offer?" or to
+find everything tied to one location before editing or removing it. The
+dropdown lists whatever locations currently exist — add a 5th and it appears
+here automatically.
+
+---
+
 ## Planned, not built yet
 
 - **[simple-content-page-plan.md](simple-content-page-plan.md)** — a design

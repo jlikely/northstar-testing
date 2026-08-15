@@ -155,8 +155,13 @@ like everything else.)
   cards look right.
 - Visit the main "choose your location" page and confirm the new location
   shows up.
-- Click through to the Competitive/Recreational/Camps pages and make sure
-  the links go where you expect.
+- **Click every season card.** From the location's page, go into Competitive,
+  Recreational, and Camps, then click all three season cards on each — nine
+  in total. Each should open a real page saying nothing is scheduled yet, not
+  a "page not found."
+- If a Camps season card gives you "page not found," its web address is
+  almost certainly still `spring-summer-camps` instead of `spring-summer` —
+  see the warning in step 4b.
 
 ---
 

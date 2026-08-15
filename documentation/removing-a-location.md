@@ -42,15 +42,17 @@ above).**
 
 ### 1. Find everything tied to this location
 
-1. Go to **Programs → Locations**.
-2. Find the location's row. In the **Count** column, click the number next
-   to it — this shows every Program tied to this location.
-3. Do the same thing for camps: go to **Camp Sessions → Locations**, find
-   the location, click its **Count** number to see every Camp Session tied
+1. Go to **Programs → All Programs** and use the **Location** dropdown at the
+   top of the list to filter to this location. That shows every Program tied
    to it.
+2. Do the same on **Camp Sessions → All Camp Sessions** — same Location
+   dropdown, same idea.
 
 Write down (or just keep these two tabs open) — you'll need to deal with
 everything on both lists.
+
+*(The **Programs → Locations** screen also shows a **Count** per location,
+and clicking that number gets you the same list. Either route works.)*
 
 ### 2. Decide what happens to the programs and camps you found
 
@@ -63,18 +65,38 @@ For each Program and Camp Session on the lists from step 1, decide:
 
 ### 3. Delete the location's pages
 
-Go to **Pages**, find and delete (Move to Trash) all of the following for
-this location:
+**Every location has 13 pages.** They're arranged like this:
 
-- The location's main page
-- Its Competitive, Recreational, and Camps pages
-- Any pages nested under those (season pages, individual program pages that
-  aren't part of the Programs list, etc.) — look for anything with this
-  location's name in the page title or listed as a "child" of pages you're
-  deleting.
+```
+Austin                        ← the location's main page
+├── Competitive
+│   ├── Spring/Summer
+│   ├── Fall
+│   └── Winter
+├── Recreational
+│   ├── Spring/Summer
+│   ├── Fall
+│   └── Winter
+└── Camps & Clinics
+    ├── Spring/Summer Camps
+    ├── Fall Camps
+    └── Winter Camps
+```
 
-**Tip:** on the Pages screen, you can search by the location's name to help
-find everything.
+> **⚠️ Don't search by the location's name — you'll only find 1 of the 13.**
+> Only the main page is called "Austin". The other 12 are called
+> "Competitive", "Spring/Summer", "Fall Camps" and so on, exactly like every
+> other location's pages. Searching finds the first one and hides the rest.
+
+Instead, go to **Pages** and find the location's main page in the list. The
+Pages screen shows pages in a tree — everything belonging to this location is
+indented underneath it, with dashes in front. Delete (**Move to Trash**) the
+whole block, **children first, working upward**, finishing with the main page
+last.
+
+> **Deleting a parent does not delete its children.** If you trash
+> "Competitive" while its three season pages are still there, those pages stay
+> published with a broken address. Always clear the deepest level first.
 
 ### 4. Remove the location from the Locations list
 
