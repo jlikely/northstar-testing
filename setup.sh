@@ -1,64 +1,53 @@
 #!/usr/bin/env bash
 # ─────────────────────────────────────────────────────────────────────────────
-# North Star FC — One-Time WordPress Setup
-# Run this ONCE from the wordpress/ directory after completing Phase 0.
+# North Star FC — One-Time Setup From A Fresh Clone
+#
+# Builds a complete working copy of the POC: WordPress core, plugins, the
+# Kadence parent theme, Carbon Fields, and the full site database (pages,
+# programs, camp sessions, and all Carbon Fields / term meta).
+#
+# Prerequisites: Docker (or OrbStack) and DDEV installed and running.
 #
 # Usage:
-#   cd "path/to/wordpress"
-#   chmod +x setup.sh
+#   cd northstar-testing
 #   ./setup.sh
+#
+# Safe to re-run: it will overwrite the local database with the committed dump.
 # ─────────────────────────────────────────────────────────────────────────────
 
-set -e
+set -euo pipefail
+
+DB_DUMP="db/northstar-testing.sql.gz"
+
+if [ ! -f "$DB_DUMP" ]; then
+  echo "✗ $DB_DUMP not found. Run this from the repo root." >&2
+  exit 1
+fi
 
 echo "▶ Starting DDEV..."
 ddev start
 
 echo "▶ Downloading WordPress core..."
-ddev wp core download
+ddev wp core download --skip-content --force
 
 echo "▶ Creating wp-config.php..."
-ddev wp config create --dbname=db --dbuser=db --dbpass=db --dbhost=db
+ddev wp config create --dbname=db --dbuser=db --dbpass=db --dbhost=db --force
 
-echo "▶ Installing WordPress..."
-ddev wp core install \
-  --url=https://nsfc.ddev.site \
-  --title="North Star FC" \
-  --admin_user=admin \
-  --admin_password=admin \
-  --admin_email=admin@nsfc.ddev.site \
-  --skip-email
-
-echo "▶ Setting pretty permalinks..."
-ddev wp rewrite structure '/%postname%/'
-ddev wp rewrite flush
-
-echo "▶ Removing default content..."
-ddev wp post delete 1 2 --force 2>/dev/null || true
-ddev wp plugin deactivate hello akismet 2>/dev/null || true
-
-echo "▶ Installing plugins..."
-ddev wp plugin install kadence-blocks --activate
-ddev wp plugin install custom-post-type-ui --activate
-ddev wp plugin install wordpress-seo --activate
-ddev wp plugin install tablepress --activate
-ddev wp plugin install wpforms-lite --activate
-
-echo "▶ Installing parent theme (Kadence)..."
-ddev wp theme install kadence --activate
+echo "▶ Importing the site database..."
+# Contains all content plus the admin user, active theme/plugin state, and the
+# financial aid options — so no `wp core install` step is needed.
+ddev import-db --file="$DB_DUMP"
 
 echo "▶ Installing Carbon Fields via Composer..."
-ddev composer init --name=northstarfc/nsfc --no-interaction 2>/dev/null || true
-ddev composer require htmlburger/carbon-fields
+ddev composer install
 
-echo "▶ Activating child theme..."
-ddev wp theme activate nsfc-child
+echo "▶ Installing plugins..."
+# The database records which plugins are active; these commands supply the
+# actual plugin files.
+ddev wp plugin install kadence-blocks custom-post-type-ui wordpress-seo tablepress wpforms-lite
 
-echo "▶ Setting financial aid options..."
-ddev wp option add nsfc_financial_aid_steps \
-  '["Log in to your PlayMetrics account","Click the Financial Aid tab on your registration","Submit your application"]'
-ddev wp option add nsfc_financial_aid_note \
-  "Questions? Contact us at info@northstarfc.com."
+echo "▶ Installing parent theme (Kadence)..."
+ddev wp theme install kadence
 
 echo "▶ Flushing rewrite rules..."
 ddev wp rewrite flush
@@ -66,10 +55,13 @@ ddev wp rewrite flush
 echo ""
 echo "✓ Setup complete!"
 echo ""
-echo "  Site URL:   https://nsfc.ddev.site"
-echo "  Admin URL:  https://nsfc.ddev.site/wp-admin"
+echo "  Site URL:   https://northstar-testing.ddev.site"
+echo "  Admin URL:  https://northstar-testing.ddev.site/wp-admin"
 echo "  Username:   admin"
 echo "  Password:   admin"
 echo ""
-echo "Next step: Open a new Claude Code session in the wordpress/ directory."
-echo "Claude will read build-plan.yaml and continue with Phase 2."
+echo "If the browser warns about the certificate, run: mkcert -install"
+echo "then quit and reopen the browser."
+echo ""
+echo "Next step: open a Claude Code session in this directory. Claude will read"
+echo "build-plan.yaml and continue from the first unfinished task."

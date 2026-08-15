@@ -25,8 +25,9 @@ wp-config-local.php
 # Ignore vendor (Composer managed)
 /vendor/
 
-# DDEV
-.ddev/
+# DDEV — config.yaml IS tracked so a fresh clone can `ddev start`.
+# DDEV maintains its own .ddev/.gitignore for the generated files it creates
+# (db_snapshots, *.local.yaml, image build dirs), so nothing extra is needed here.
 
 # macOS
 .DS_Store
