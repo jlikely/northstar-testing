@@ -16,35 +16,24 @@
 
 .cf-field.cf-separator {
 	margin-top: 36px;
-	margin-bottom: 4px;
-	padding-top: 16px;
-	border-top: 2px solid #c3c4c7;
+	margin-bottom: 20px;
+	padding: 24px 16px;
+	background: #000;
+	border-top: 0;
 }
 
 /* The first section in a box doesn't need to be pushed away from anything. */
 .cf-field.cf-separator:first-child {
-	margin-top: 4px;
-	padding-top: 0;
-	border-top: 0;
+	margin-top: 0;
 }
 
 .cf-field.cf-separator h3 {
 	margin: 0;
 	padding: 0;
-	font-size: 16px;
-	font-weight: 600;
-	line-height: 1.4;
-	color: #1d2327;
-}
-
-/* A short accent rule under the label, so the heading reads as a title
-   rather than as another field label. */
-.cf-field.cf-separator h3::after {
-	content: "";
-	display: block;
-	width: 40px;
-	margin-top: 8px;
-	border-bottom: 3px solid #2271b1;
+	font-size: 24px;
+	font-weight: 700;
+	line-height: 1.3;
+	color: #fff;
 }
 
 /* ── Field spacing ────────────────────────────────────────────────────────── */
@@ -55,6 +44,38 @@
    several rows very tall. */
 .cf-container .cf-field:not(.cf-complex__group-body .cf-field) {
 	margin-bottom: 18px;
+}
+
+/* ── Unused fields on the term screens ────────────────────────────────────── */
+
+/*
+ * Hide "Parent" and "Description" on the Season / Level / Location / Camp Type
+ * term screens — both the Add New form (edit-tags.php, `div.form-field`) and
+ * the edit form (edit-tag-form.php, `tr.form-field`).
+ *
+ * Core renders Parent on any taxonomy registered `hierarchical => true`, which
+ * these four are purely so the block editor gives checkboxes instead of a
+ * free-text field (see CLAUDE.md). None of them nest, and setting a parent
+ * would indent that term inside another one in every checkbox list.
+ *
+ * Description is never read: no template in this theme touches a term's
+ * description. Location intro copy lives on the Location Hub page's "Location
+ * Details" box, and a camp type's description is the Carbon Fields term-meta
+ * box further down this same screen — so leaving core's field visible offered
+ * a second, identically-named box whose text goes nowhere.
+ *
+ * Scoped by taxonomy on purpose: post categories are hierarchical and use the
+ * same markup, and their Parent and Description both do real work.
+ */
+body.taxonomy-season .term-parent-wrap,
+body.taxonomy-season .term-description-wrap,
+body.taxonomy-program_level .term-parent-wrap,
+body.taxonomy-program_level .term-description-wrap,
+body.taxonomy-program_location .term-parent-wrap,
+body.taxonomy-program_location .term-description-wrap,
+body.taxonomy-camp_type .term-parent-wrap,
+body.taxonomy-camp_type .term-description-wrap {
+	display: none;
 }
 
 /* ── Meta box titles ──────────────────────────────────────────────────────── */

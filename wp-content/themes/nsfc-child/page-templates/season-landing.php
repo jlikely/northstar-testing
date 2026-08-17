@@ -75,7 +75,7 @@ while ( $programs->have_posts() ) {
         'permalink'  => get_permalink(),
         'badge'      => carbon_get_post_meta( get_the_ID(), 'age_label' ),
         'excerpt'    => get_the_excerpt(),
-        'date_range' => carbon_get_post_meta( get_the_ID(), 'date_range' ),
+        'date_range' => nsfc_program_date_range( get_the_ID() ),
     ];
 }
 wp_reset_postdata();

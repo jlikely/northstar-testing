@@ -22,6 +22,7 @@ require_once get_stylesheet_directory() . '/inc/cpt.php';
 require_once get_stylesheet_directory() . '/inc/taxonomies.php';
 require_once get_stylesheet_directory() . '/inc/carbon-fields.php';
 require_once get_stylesheet_directory() . '/inc/location-data.php';
+require_once get_stylesheet_directory() . '/inc/dates.php';
 require_once get_stylesheet_directory() . '/inc/admin-filters.php';
 require_once get_stylesheet_directory() . '/inc/admin-ui.php';
 require_once get_stylesheet_directory() . '/inc/breadcrumbs.php';

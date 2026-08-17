@@ -84,7 +84,7 @@ northstar-testing/              ← repo root + DDEV project root (this director
 │           │   ├── carbon-fields.php   ← Field group definitions
 │           │   ├── location-data.php   ← Shared location-hub card copy (see "Location Hub pages")
 │           │   ├── admin-filters.php   ← Location filter on the Programs/Camp Sessions list tables
-│           │   ├── admin-ui.php        ← Enqueues assets/admin.css on editor screens
+│           │   ├── admin-ui.php        ← assets/admin.css enqueue + hides inline term creation
 │           │   └── breadcrumbs.php     ← nsfc_breadcrumb() — native trail, no plugin
 │           ├── assets/
 │           │   └── admin.css           ← wp-admin only: Carbon Fields section headings
@@ -122,6 +122,31 @@ term from whatever you type, which is how three locations originally got
 slug-style names. The flag only affects the editing UI; stored terms and
 assignments are untouched by it.
 
+**Terms are created on the taxonomy admin screens only** (Programs → Locations,
+Camp Sessions → Camp Types, etc.). `nsfc_hide_inline_term_creation()` in
+`inc/admin-ui.php` strips the block editor's inline "Add New …" form from all
+four taxonomy panels on `program` and `camp-session` posts — the assignment
+checkboxes are untouched. Two reasons: the inline form has no Slug field
+(auto-slugging a typed name is the same failure mode the `hierarchical` flag
+above was meant to close), and creating a location is only step 1 of 4 in
+`documentation/adding-a-location.md` — a term made inline shows up in every
+location dropdown and admin filter site-wide with no Location Hub page behind
+it. It works by removing the post's `wp:action-create-{taxonomy}` REST link,
+not by changing capabilities, so the term screens stay fully usable.
+
+**Parent and Description are hidden on those four term screens** — the CSS
+rules in `assets/admin.css`, plus `nsfc_hide_term_description_column()` for the
+list-table column. Core renders Parent on anything hierarchical, but none of
+these nest and setting a parent would indent the term inside another one in
+every checkbox list. Term descriptions are read by nothing in the theme (a
+location's intro copy is on its Location Hub page; a camp type's description is
+the Carbon Fields term-meta box on the same screen), so core's field was a
+second, identically-named box whose text went nowhere. Both are scoped by
+taxonomy — post categories use the same markup and need both fields. **Name and
+Slug are what's left, and Slug is load-bearing:** page meta (`_nsfc_location`,
+`_nsfc_season`, `_nsfc_level`) stores the slug, so renaming a slug silently
+detaches every page pointing at it. Names are safe to edit; slugs are not.
+
 | Taxonomy slug | Label | Terms |
 |---|---|---|
 | `season` | Season | `spring-summer`, `fall`, `winter` |
@@ -131,6 +156,69 @@ assignments are untouched by it.
 
 ### Carbon Fields meta keys
 All program fields are stored with the prefix `_` (Carbon Fields default). Access in templates with `carbon_get_post_meta('field_name')`.
+
+### No block editor on Programs or Camp Sessions (removed 2026-08-16)
+Both CPTs were registered with `'editor'` support, which is the only reason the
+block canvas was ever there. It was actively unsafe on `program`:
+`single-program.php` wrapped `get_the_content()` in a `<p class="lead">`
+*without* running block filters, so any real block (heading, list, columns)
+emitted a `<p>` inside a `<p>`; and the whole paragraph was suppressed on any
+program with a structured practice/game schedule, so the canvas silently
+discarded whatever was typed there.
+
+A program's lead paragraph is now the **`description`** textarea in the Key
+details section, and it always renders — the old "hide it when there's a
+schedule" condition is gone. The 2 programs that had `post_content` (210
+Kickstarters Classes, 81 Recreation Classes) were moved to it and their
+`post_content` cleared.
+
+`excerpt` is still supported on `program` and is **not** the same field — it's
+the card description on the season landing pages, used by 14 of 16 programs.
+Description = the paragraph on the program's own page; Excerpt = the blurb on
+its card. Post 81 has different text in each, which is why they weren't merged.
+
+`camp-session` lost both `editor` and `excerpt` (0 posts used either, and no
+template reads them — a camp renders as a card + modal built from Carbon Fields
+and its `camp_type` term description). `thumbnail` came off `program` too: no
+template in this theme renders a featured image.
+
+### Program dates (converted to real dates 2026-08-16)
+A Program's Key details dates are **`start_date` + `end_date` `date` fields**,
+and the displayed string is derived from them by `nsfc_program_date_range()` /
+`nsfc_format_date_range()` in `inc/dates.php` — never typed by hand. Both
+`single-program.php` and `season-landing.php`'s program cards call the helper,
+so they cannot disagree. House format matches the camp cards: `Jun 8–11, 2026`
+(same month), `Sep 7 – Oct 24, 2026` (same year), `Oct 20, 2026 – Mar 27, 2027`
+(across years).
+
+**Session dates work the same way**: each `sessions` row has
+`session_start_date` / `session_end_date` pickers, rendered through the same
+helper. Rows saved before the pickers existed have no start/end keys at all,
+hence the `?? ''` guards in `single-program.php`.
+
+**Pickers only — there is no free-text date field, by design.** `date_range`
+and `session_dates` briefly survived as text overrides for values that weren't
+really dates, then were removed the same day: a stale override silently hid the
+real dates beneath it, and two fields meaning "dates" was exactly the confusion
+the pickers were meant to end. All 24 stored values were converted on
+2026-08-16 and the text fields deleted. A program with nothing picked shows no
+dates at all.
+
+**The migrated years are invented.** Only one stored value named its year
+(post 98, "Oct 26 – Dec 19, 2025"), so everything was anchored to a 2025-26
+season on the user's explicit instruction that this is throwaway POC content.
+Three conversions also lost real detail and would need re-entering for a real
+build: post 99's two sessions were **lists of individual meeting days**
+("Oct 24, 31 · Nov 7, 14, 21 · Dec 5, 12, 19") flattened to their first and
+last date; posts 89/90/98 held **month-only** spans ("March – June") given
+arbitrary first/last-of-month days; and post 80's Session III dropped a
+trailing "· 4 games". Snapshot `pre-date-migration` holds the originals.
+
+**Camp Sessions deliberately still work the other way** and were not changed:
+`_start_date`/`_end_date` exist only as a sort key for `camps-season.php`, and
+every visible camp date comes from the separately hand-typed `date_label`. That
+means a camp's pickers and its label can drift apart. Worth unifying onto
+`inc/dates.php` if camps get revisited.
 
 ### Location Hub pages (self-serve, added 2026-08-10)
 Each location's hub page (Rochester, Austin, Albert Lea, Winona, and any future
@@ -382,6 +470,24 @@ Use the same patterns as the React prototype. Key ones:
 
 ### Registration is always last
 On every program detail page, registration buttons are the final content section — after dates, schedule, costs, coaching, and financial aid.
+
+**The registration block renders every field that's filled in** (rewritten
+2026-08-16). It used to be an `if/elseif` chain — Boys/Girls, else
+Team/Individual, else External CTA — with the Registration Note *and* the whole
+Coaches column living inside the Boys/Girls branch only. A Team-only program
+(post 211) therefore showed neither, with nothing in the admin hinting why.
+`single-program.php` now builds `$reg_buttons` from all five URL fields and
+renders the note and Coaches block independently of which ones are set. Filling
+Boys, Girls and Team now yields three buttons rather than silently hiding one —
+that is intended: what's entered is what shows.
+
+The old **"Extra Sections"** field group is gone (2026-08-16). It held three
+unrelated things rendering in three different page sections: `notes` (the
+callout box, 13/16 programs), `show_financial_aid` (the toggle, 4/16), and
+`external_link_label`/`external_link_url` (0/16). They're now under `Notes`,
+`Financial assistance`, and — since it renders as a Register button — inside
+`Registration`, relabelled "Register — Other". Labels and grouping only; every
+meta key is unchanged, so nothing needed migrating.
 
 ### Financial aid
 Global text stored in WP Options (set via `ddev wp option update`). Key: `nsfc_financial_aid_steps` (JSON array of 3 steps) and `nsfc_financial_aid_note` (string).

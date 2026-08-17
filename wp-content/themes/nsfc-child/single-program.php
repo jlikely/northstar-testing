@@ -12,7 +12,9 @@ while ( have_posts() ) :
 
     // Carbon Fields meta
     $age_label           = carbon_get_post_meta( get_the_ID(), 'age_label' );
-    $date_range          = carbon_get_post_meta( get_the_ID(), 'date_range' );
+    // Derived from the start/end date pickers, or the text override when the
+    // real dates aren't pinned down yet — see inc/dates.php.
+    $date_range          = nsfc_program_date_range( get_the_ID() );
     $tryout_required     = carbon_get_post_meta( get_the_ID(), 'tryout_required' );
     $format              = carbon_get_post_meta( get_the_ID(), 'format' );
     $venue               = carbon_get_post_meta( get_the_ID(), 'venue' );
@@ -114,12 +116,16 @@ while ( have_posts() ) :
         <p class="text-muted mb-4"><?php echo esc_html( implode( ' · ', $subtitle_parts ) ); ?></p>
       <?php endif; ?>
 
-      <?php // ── 3. Description / lead paragraph (only when no structured schedule) ── ?>
+      <?php // ── 3. Description / lead paragraph ─────────────────────────────── ?>
       <?php
-      $has_structured_schedule = ! empty( $practices[0]['day'] ) || ! empty( $games[0]['day'] );
-      if ( ! $has_structured_schedule && get_the_content() ) :
+      // Was `get_the_content()` until the block editor was removed from this
+      // CPT — see inc/cpt.php. The old version also hid itself whenever the
+      // program had a structured schedule, which made the editor canvas look
+      // broken on those posts; a dedicated field has no reason to hide.
+      $description = carbon_get_post_meta( get_the_ID(), 'description' );
+      if ( $description ) :
       ?>
-        <p class="lead text-muted mb-4" style="max-width:520px"><?php echo wp_kses_post( get_the_content() ); ?></p>
+        <p class="lead text-muted mb-4" style="max-width:520px"><?php echo esc_html( $description ); ?></p>
       <?php endif; ?>
 
       <?php // ── 4. Key program details ──────────────────────────────────────── ?>
@@ -292,8 +298,10 @@ while ( have_posts() ) :
           <div class="col-sm-6">
             <div class="border rounded-3 p-3 h-100">
               <h3 class="h6 fw-semibold mb-2"><?php echo esc_html( $s['session_label'] ); ?></h3>
-              <?php if ( $s['session_dates'] ) : ?>
-                <p class="small text-muted mb-1"><?php echo esc_html( $s['session_dates'] ); ?></p>
+              <?php // Rows saved before the date pickers existed have no start/end keys at all. ?>
+              <?php $session_dates = nsfc_format_date_range( $s['session_start_date'] ?? '', $s['session_end_date'] ?? '' ); ?>
+              <?php if ( $session_dates ) : ?>
+                <p class="small text-muted mb-1"><?php echo esc_html( $session_dates ); ?></p>
               <?php endif; ?>
               <?php if ( $s['session_cost'] ) : ?>
                 <p class="small fw-medium mb-0"><?php echo esc_html( $s['session_cost'] ); ?></p>
@@ -426,33 +434,45 @@ while ( have_posts() ) :
 
       <?php // ── 10. Registration block (always last content section) ────────── ?>
       <?php
-      $has_boys_girls = $reg_url_boys || $reg_url_girls;
-      $has_team_indiv = $reg_url_team || $reg_url_indiv;
-      $has_any_reg    = ! $sub_programs && ( $has_boys_girls || $has_team_indiv || $external_link_url );
+      // Every registration link that's actually filled in, in a fixed order.
+      // This used to be an if/elseif chain keyed on Boys/Girls → Team/Individual
+      // → External, which silently dropped anything outside the first matching
+      // branch: a Team-only program showed no Coaches block and no Registration
+      // Note at all, because both lived inside the Boys/Girls branch. Whatever
+      // is entered now renders.
+      $reg_buttons = array_filter( [
+          'Register — Boys →'       => $reg_url_boys,
+          'Register — Girls →'      => $reg_url_girls,
+          'Register — Team →'       => $reg_url_team,
+          'Register — Individual →' => $reg_url_indiv,
+          ( $external_link_label ?: 'Register →' ) => $external_link_url,
+      ] );
+
+      $has_coaching_block = $has_coaching && ( $coaching_note || ( $coaching_href && $coaching_label ) );
+      $has_any_reg        = ! $sub_programs && ( $reg_buttons || $reg_window || $reg_note || $has_coaching_block );
       if ( $has_any_reg ) :
       ?>
       <section class="border-top pt-4 mb-5">
         <h2 class="h5 fw-bold mb-4">Ready to register?</h2>
 
-        <?php if ( $has_boys_girls ) : ?>
         <div class="row g-4">
-          <div class="col-md-6">
+          <div class="<?php echo $has_coaching_block ? 'col-md-6' : 'col-12'; ?>">
             <?php if ( $reg_window ) : ?>
               <p class="small text-muted mb-1"><?php echo esc_html( $reg_window ); ?></p>
             <?php endif; ?>
             <?php if ( $reg_note ) : ?>
               <p class="small text-muted mb-3"><?php echo esc_html( $reg_note ); ?></p>
             <?php endif; ?>
+            <?php if ( $reg_buttons ) : ?>
             <div class="d-flex flex-column gap-2">
-              <?php if ( $reg_url_boys ) : ?>
-                <a href="<?php echo esc_url( $reg_url_boys ); ?>" class="btn btn-dark" target="_blank" rel="noopener noreferrer">Register — Boys →</a>
-              <?php endif; ?>
-              <?php if ( $reg_url_girls ) : ?>
-                <a href="<?php echo esc_url( $reg_url_girls ); ?>" class="btn btn-dark" target="_blank" rel="noopener noreferrer">Register — Girls →</a>
-              <?php endif; ?>
+              <?php foreach ( $reg_buttons as $label => $url ) : ?>
+                <a href="<?php echo esc_url( $url ); ?>" class="btn btn-dark" target="_blank" rel="noopener noreferrer"><?php echo esc_html( $label ); ?></a>
+              <?php endforeach; ?>
             </div>
+            <?php endif; ?>
           </div>
-          <?php if ( $has_coaching ) : ?>
+
+          <?php if ( $has_coaching_block ) : ?>
           <div class="col-md-6">
             <h3 class="h6 fw-semibold mb-2">Coaches</h3>
             <?php if ( $coaching_note ) : ?>
@@ -464,27 +484,6 @@ while ( have_posts() ) :
           </div>
           <?php endif; ?>
         </div>
-
-        <?php elseif ( $has_team_indiv ) : ?>
-        <div class="d-flex flex-column gap-2">
-          <?php if ( $reg_window ) : ?>
-            <p class="small text-muted mb-1"><?php echo esc_html( $reg_window ); ?></p>
-          <?php endif; ?>
-          <?php if ( $reg_url_team ) : ?>
-            <a href="<?php echo esc_url( $reg_url_team ); ?>" class="btn btn-dark" target="_blank" rel="noopener noreferrer">Register — Team →</a>
-          <?php endif; ?>
-          <?php if ( $reg_url_indiv ) : ?>
-            <a href="<?php echo esc_url( $reg_url_indiv ); ?>" class="btn btn-dark" target="_blank" rel="noopener noreferrer">Register — Individual →</a>
-          <?php endif; ?>
-        </div>
-
-        <?php elseif ( $external_link_url ) : ?>
-        <div class="d-flex flex-column gap-2">
-          <a href="<?php echo esc_url( $external_link_url ); ?>" class="btn btn-dark" target="_blank" rel="noopener noreferrer">
-            <?php echo esc_html( $external_link_label ?: 'Register →' ); ?>
-          </a>
-        </div>
-        <?php endif; ?>
       </section>
       <?php endif; ?>
 

@@ -33,10 +33,14 @@ function nsfc_register_program_fields() {
         ->add_fields( [
 
             // Basic details
+            Field::make( 'separator', 'sep_key_details', 'Key details' ),
+            Field::make( 'textarea', 'description', 'Intro' )
+                ->set_help_text( 'One short paragraph, shown under the title on the program page. Plain text — no formatting. This replaced the block editor, which used to hold this copy.' ),
             Field::make( 'text', 'age_label', 'Age Range' )
                 ->set_help_text( 'e.g. "Ages 9–12" or "Grades 3–8"' ),
-            Field::make( 'text', 'date_range', 'Dates' )
-                ->set_help_text( 'e.g. "September–November 2026"' ),
+            Field::make( 'date', 'start_date', 'Start date' )
+                ->set_help_text( 'The first day of the program. The dates shown on the site are built from this and the end date — you don\'t type them out.' ),
+            Field::make( 'date', 'end_date', 'End date' ),
             Field::make( 'checkbox', 'tryout_required', 'Tryout Required' ),
             Field::make( 'text', 'format', 'Format' )
                 ->set_help_text( 'e.g. "11v11" or "Small-sided"' ),
@@ -46,13 +50,19 @@ function nsfc_register_program_fields() {
 
             // Registration
             Field::make( 'separator', 'sep_registration', 'Registration' ),
-            Field::make( 'text', 'registration_window', 'Registration Window' )
-                ->set_help_text( 'e.g. "Opens June 1"' ),
-            Field::make( 'text', 'registration_note', 'Registration Note' ),
+            Field::make( 'text', 'registration_window', 'Intro' )
+                ->set_help_text( 'First line above the Register buttons — e.g. "Opens June 1" or "March 27 – April 30, 2026".' ),
+            Field::make( 'text', 'registration_note', 'Registration Note' )
+                ->set_help_text( 'Second line, under the Intro above.' ),
             Field::make( 'text', 'registration_url_boys', 'Register — Boys (URL)' ),
             Field::make( 'text', 'registration_url_girls', 'Register — Girls (URL)' ),
             Field::make( 'text', 'registration_url_team', 'Register — Team (URL)' ),
             Field::make( 'text', 'registration_url_individual', 'Register — Individual (URL)' ),
+            // Moved here from the old "Extra Sections" group — it renders as a
+            // Register button alongside the four above, so it belongs with them.
+            Field::make( 'text', 'external_link_label', 'Register — Other (button label)' )
+                ->set_help_text( 'For a program that registers somewhere none of the four buttons above describes. Defaults to "Register" if left blank.' ),
+            Field::make( 'text', 'external_link_url', 'Register — Other (URL)' ),
 
             // Coaching
             Field::make( 'separator', 'sep_coaching', 'Coaching' ),
@@ -61,12 +71,18 @@ function nsfc_register_program_fields() {
             Field::make( 'text', 'coaching_contact_label', 'Coaching Contact Label' ),
             Field::make( 'text', 'coaching_contact_href', 'Coaching Contact URL (mailto: or https://)' ),
 
-            // Financial aid + notes
-            Field::make( 'separator', 'sep_extra', 'Extra Sections' ),
-            Field::make( 'checkbox', 'show_financial_aid', 'Show Financial Assistance Section' ),
-            Field::make( 'textarea', 'notes', 'Notes (callout box)' ),
-            Field::make( 'text', 'external_link_label', 'External CTA Label' ),
-            Field::make( 'text', 'external_link_url', 'External CTA URL' ),
+            // Was one "Extra Sections" group holding three unrelated things that
+            // render in three different places on the page — the notes callout,
+            // the financial assistance toggle, and a Register button. Split into
+            // the sections they actually correspond to; the button moved up into
+            // Registration above.
+            Field::make( 'separator', 'sep_notes', 'Notes' ),
+            Field::make( 'textarea', 'notes', 'Notes' )
+                ->set_help_text( 'Shown near the bottom of the program page in a bordered callout box, above Financial assistance.' ),
+
+            Field::make( 'separator', 'sep_financial_aid', 'Financial assistance' ),
+            Field::make( 'checkbox', 'show_financial_aid', 'Show the Financial assistance section' )
+                ->set_help_text( 'The wording is the same on every program and is set site-wide, not here — this only decides whether the section appears.' ),
 
             // Schedule
             Field::make( 'separator', 'sep_schedule', 'Schedule' ),
@@ -112,7 +128,8 @@ function nsfc_register_program_fields() {
                 ->add_fields( [
                     Field::make( 'text', 'session_label', 'Session Name' )
                         ->set_help_text( 'e.g. "Winter Session I — October"' ),
-                    Field::make( 'text', 'session_dates', 'Dates' ),
+                    Field::make( 'date', 'session_start_date', 'Start date' ),
+                    Field::make( 'date', 'session_end_date', 'End date' ),
                     Field::make( 'text', 'session_cost', 'Cost' ),
                     Field::make( 'text', 'session_note', 'Note (optional)' ),
                 ] ),
