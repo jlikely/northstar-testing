@@ -43,3 +43,40 @@ function nsfc_location_registered_links() {
         [ 'label' => 'Contact us',  'desc' => 'Get in touch with the North Star FC staff.',           'href' => 'mailto:info@northstarfc.com' ],
     ];
 }
+
+/**
+ * A venue's display details, from a venue post ID.
+ *
+ * Venue fields are stored once on the venue and referenced everywhere else, so
+ * every template reads through here rather than assembling its own string —
+ * same reasoning as nsfc_financial_aid(). Returns null for an empty or dangling
+ * reference so callers can simply skip it.
+ *
+ * @return array{name:string,address:string,map_url:string}|null
+ */
+function nsfc_venue( $venue_id ) {
+    $venue_id = absint( $venue_id );
+    if ( ! $venue_id ) {
+        return null;
+    }
+
+    $venue = get_post( $venue_id );
+    if ( ! $venue || 'venue' !== $venue->post_type || 'publish' !== $venue->post_status ) {
+        return null;
+    }
+
+    return [
+        'name'    => get_the_title( $venue_id ),
+        'address' => (string) carbon_get_post_meta( $venue_id, 'nsfc_venue_address' ),
+        'map_url' => (string) carbon_get_post_meta( $venue_id, 'nsfc_venue_map_url' ),
+    ];
+}
+
+/**
+ * Just the venue name — for the many places that show it inline in a list.
+ */
+function nsfc_venue_name( $venue_id ) {
+    $venue = nsfc_venue( $venue_id );
+
+    return $venue ? $venue['name'] : '';
+}

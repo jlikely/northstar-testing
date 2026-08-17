@@ -37,6 +37,39 @@ function nsfc_register_cpts() {
         'rewrite'           => [ 'slug' => 'program', 'with_front' => false ],
     ] );
 
+    // Venues CPT — the central list of places, so a venue is picked rather than
+    // typed. Before this, venue was free text in four separate fields and 55
+    // entries had already produced 8 different strings for ~5 real places
+    // ("RCTC Field House" vs "RCTC Field House, 851 College Pkwy SE, Rochester").
+    //
+    // A CPT rather than a taxonomy, unlike program_location and camp_type: a
+    // venue has to be selectable on individual repeater ROWS (a session's
+    // meeting times, a sub-program's sessions), and a taxonomy can only attach
+    // to a whole post.
+    //
+    // Not public — venues have no page of their own; they're referenced from
+    // programs and camp sessions.
+    register_post_type( 'venue', [
+        'labels' => [
+            'name'               => 'Venues',
+            'singular_name'      => 'Venue',
+            'add_new_item'       => 'Add New Venue',
+            'edit_item'          => 'Edit Venue',
+            'search_items'       => 'Search Venues',
+            'not_found'          => 'No venues found.',
+            'not_found_in_trash' => 'No venues found in trash.',
+        ],
+        'public'            => false,
+        'show_ui'           => true,
+        'show_in_menu'      => true,
+        'show_in_rest'      => false,
+        'has_archive'       => false,
+        'hierarchical'      => false,
+        'menu_icon'         => 'dashicons-location',
+        'menu_position'     => 26,
+        'supports'          => [ 'title' ],
+    ] );
+
     // Camp Sessions CPT
     register_post_type( 'camp-session', [
         'labels' => [

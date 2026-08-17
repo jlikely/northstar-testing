@@ -643,8 +643,71 @@ callout box, 13/16 programs), `show_financial_aid` (the toggle, 4/16), and
 `Registration`, relabelled "Register — Other". Labels and grouping only; every
 meta key is unchanged, so nothing needed migrating.
 
-### Financial aid
-Global text stored in WP Options (set via `ddev wp option update`). Key: `nsfc_financial_aid_steps` (JSON array of 3 steps) and `nsfc_financial_aid_note` (string).
+### Venues (central list, added 2026-08-17)
+Venue is a **`venue` CPT**, not free text and not a taxonomy. Every field that
+used to hold a venue string now stores a **venue post ID**:
+`program.venue`, `sessions[].session_times[].venue`,
+`sub_programs[].sessions[].venue`, and `camp-session.venue`.
+
+**Why a CPT and not a taxonomy**, unlike `program_location` / `camp_type`: a
+venue must be selectable on individual repeater *rows* (a session's meeting
+times, a sub-program's session), and a taxonomy can only attach to a whole post.
+`public => false` — venues have no page of their own.
+
+Each venue carries its `program_location` term (so each location owns its
+venues, and `program_location` stays the single source of truth), plus
+`nsfc_venue_address` and `nsfc_venue_map_url`. Both may be blank; the venue
+still works. When a map URL is set, the program page renders a "Directions"
+link — something a plain string could never do.
+
+Templates never read the raw meta. `nsfc_venue()` / `nsfc_venue_name()` in
+`inc/location-data.php` resolve an ID to name/address/map and return null for a
+dangling reference, so callers just skip it. `nsfc_venue_options()` in
+`inc/carbon-fields.php` builds the picker, labelled `Location — Venue name`.
+
+**Why this exists:** 55 stored entries at one location had already produced 8
+different strings for about 5 real places — `RCTC Field House` vs
+`RCTC Field House, 851 College Pkwy SE, Rochester`, `Watson Soccer Complex` vs
+`Watson / Withers Soccer Complex`. Migrating four locations' worth later would
+have been far worse.
+
+**The migration was 1:1 by design — no merging.** Eight strings became eight
+venues, because deciding whether two names are the same place is the user's
+call, and merging records in the admin is trivial. Three still need attention:
+
+| Venue | Issue |
+|---|---|
+| `North Star FC` / `380 Woodlake Dr SE` | same address, two records |
+| `RCTC Field House` / `RCTC Field House (no address)` | same place, one lacks an address |
+| `Rochester (we aim to keep your child in their home quadrant)` | **not a venue** — a practice-location caveat on Fall Rec League that should become a note |
+
+Also confirm `Watson / Withers Soccer Complex` vs `Watson Soccer Complex`, and
+the spelling of `LongFellow (Kepp Field)`.
+
+The program page's Key details heading is now **"Venue"** (was "Location"),
+which retires the last case of two different things both called Location.
+
+### Financial aid (self-serve since 2026-08-17)
+Edited at **Settings → Financial Assistance** — a Carbon Fields `theme_options`
+container (`nsfc_register_financial_aid_options()` in `inc/carbon-fields.php`).
+Four fields: `nsfc_fa_heading`, `nsfc_fa_intro`, `nsfc_fa_steps` (complex), and
+`nsfc_fa_note`.
+
+**One shared set for all four locations**, by explicit decision — start shared,
+split only if a location turns out to need its own wording. `nsfc_financial_aid()`
+in `functions.php` is the **single read point**; a per-location override belongs
+inside that function, and no template would need touching.
+
+The section is hidden on any program with no steps, and per-program visibility
+is still the `show_financial_aid` checkbox — that toggle holds no content.
+
+**Replaced** the `nsfc_financial_aid_steps` / `nsfc_financial_aid_note`
+wp_options, which are now **deleted**. Those had no admin UI (WP-CLI only) and
+stored the steps as a JSON *string*, so malformed JSON would have silently
+removed the section from every program with no error. The heading and intro
+paragraph were separately hardcoded in `single-program.php`, meaning the
+sentence stating the club's position on financial aid could only be changed by a
+developer. All four parts are now in one screen.
 
 Standard wording:
 > "North Star FC believes every child should have the opportunity to play. Financial aid is available through PlayMetrics during registration."

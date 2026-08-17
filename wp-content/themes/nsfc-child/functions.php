@@ -70,9 +70,32 @@ add_action( 'after_setup_theme', function () {
     ] );
 } );
 
-// Helper: get Carbon Fields option
+/**
+ * The Financial assistance section's content, from Settings → Financial
+ * Assistance (registered in inc/carbon-fields.php).
+ *
+ * **This is the single read point for that content** — every template goes
+ * through here. It is currently one shared set for all four locations, which is
+ * the deliberate starting point. If a location ever needs its own wording, take
+ * a location slug here and resolve the override inside this function; no
+ * template will need touching.
+ *
+ * Replaced the old `nsfc_financial_aid_steps` / `nsfc_financial_aid_note`
+ * wp_options, which had no admin UI and stored the steps as a JSON string.
+ */
 function nsfc_financial_aid() {
-    $steps = json_decode( get_option( 'nsfc_financial_aid_steps', '[]' ), true );
-    $note  = get_option( 'nsfc_financial_aid_note', '' );
-    return [ 'steps' => $steps, 'note' => $note ];
+    $steps = [];
+    foreach ( (array) carbon_get_theme_option( 'nsfc_fa_steps' ) as $row ) {
+        $step = trim( (string) ( $row['step'] ?? '' ) );
+        if ( '' !== $step ) {
+            $steps[] = $step;
+        }
+    }
+
+    return [
+        'heading' => carbon_get_theme_option( 'nsfc_fa_heading' ) ?: 'Financial assistance',
+        'intro'   => carbon_get_theme_option( 'nsfc_fa_intro' ),
+        'steps'   => $steps,
+        'note'    => carbon_get_theme_option( 'nsfc_fa_note' ),
+    ];
 }

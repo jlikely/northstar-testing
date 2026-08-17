@@ -17,7 +17,8 @@ while ( have_posts() ) :
     $date_range          = nsfc_program_date_range( get_the_ID() );
     $tryout_required     = carbon_get_post_meta( get_the_ID(), 'tryout_required' );
     $format              = carbon_get_post_meta( get_the_ID(), 'format' );
-    $venue               = carbon_get_post_meta( get_the_ID(), 'venue' );
+    // Venue fields hold a venue post ID; nsfc_venue() resolves name/address/map.
+    $venue               = nsfc_venue( carbon_get_post_meta( get_the_ID(), 'venue' ) );
     $cost_text           = carbon_get_post_meta( get_the_ID(), 'cost_text' );
     $notes               = carbon_get_post_meta( get_the_ID(), 'notes' );
     $show_financial_aid  = carbon_get_post_meta( get_the_ID(), 'show_financial_aid' );
@@ -170,8 +171,14 @@ while ( have_posts() ) :
         <?php endif; ?>
         <?php if ( $venue ) : ?>
           <div class="mb-4">
-            <h2 class="h6 fw-semibold mb-1">Location</h2>
-            <p class="mb-0"><?php echo esc_html( $venue ); ?></p>
+            <h2 class="h6 fw-semibold mb-1">Venue</h2>
+            <p class="mb-0"><?php echo esc_html( $venue['name'] ); ?></p>
+            <?php if ( $venue['address'] ) : ?>
+              <p class="small text-muted mb-0"><?php echo esc_html( $venue['address'] ); ?></p>
+            <?php endif; ?>
+            <?php if ( $venue['map_url'] ) : ?>
+              <p class="small mb-0"><a href="<?php echo esc_url( $venue['map_url'] ); ?>" target="_blank" rel="noopener noreferrer">Directions &rarr;</a></p>
+            <?php endif; ?>
           </div>
         <?php endif; ?>
         <?php if ( $date_range ) : ?>
@@ -283,7 +290,7 @@ while ( have_posts() ) :
                 <?php
                 $detail = array_filter( [
                     $t['time'] ?? '',
-                    $t['venue'] ?? '',
+                    nsfc_venue_name( $t['venue'] ?? '' ),
                     nsfc_format_date_range( $t['start_date'] ?? '', $t['end_date'] ?? '' ),
                 ] );
                 ?>
@@ -360,8 +367,9 @@ while ( have_posts() ) :
               <div class="col-sm-6">
                 <div class="border rounded-3 p-3 h-100">
                   <h4 class="h6 fw-semibold mb-3"><?php echo esc_html( $session['session_label'] ); ?></h4>
-                  <?php if ( $session['venue'] ) : ?>
-                    <p class="small text-muted mb-2"><?php echo esc_html( $session['venue'] ); ?></p>
+                  <?php $session_venue = nsfc_venue_name( $session['venue'] ?? '' ); ?>
+                  <?php if ( $session_venue ) : ?>
+                    <p class="small text-muted mb-2"><?php echo esc_html( $session_venue ); ?></p>
                   <?php endif; ?>
                   <?php if ( ! empty( $session['schedule'] ) ) : ?>
                     <table class="table table-sm table-borderless mb-0"><tbody>
@@ -419,8 +427,12 @@ while ( have_posts() ) :
       <?php // ── 9. Financial assistance ──────────────────────────────────────── ?>
       <?php if ( $show_financial_aid && ! empty( $financial_aid['steps'] ) ) : ?>
       <section class="border-top pt-4 mb-5">
-        <h2 class="h6 fw-semibold mb-2">Financial assistance</h2>
-        <p class="small text-muted mb-3">North Star FC believes every child should have the opportunity to play. Financial aid is available through PlayMetrics during registration.</p>
+        <?php // Heading and intro were hardcoded here until 2026-08-17 — they're
+              // now editable at Settings → Financial Assistance, like the steps. ?>
+        <h2 class="h6 fw-semibold mb-2"><?php echo esc_html( $financial_aid['heading'] ); ?></h2>
+        <?php if ( $financial_aid['intro'] ) : ?>
+          <p class="small text-muted mb-3"><?php echo esc_html( $financial_aid['intro'] ); ?></p>
+        <?php endif; ?>
         <ol class="small text-muted ps-4 mb-2">
           <?php foreach ( $financial_aid['steps'] as $step ) : ?>
             <li class="mb-1"><?php echo esc_html( $step ); ?></li>

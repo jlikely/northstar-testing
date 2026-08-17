@@ -1,7 +1,15 @@
 <?php
 defined( 'ABSPATH' ) || exit;
 
-add_action( 'admin_enqueue_scripts', 'nsfc_admin_styles' );
+// Hooked to admin_print_footer_scripts, NOT admin_enqueue_scripts, and that is
+// load-bearing. Carbon Fields enqueues carbon-fields-core.css and
+// carbon-fields-metaboxes.css from `admin_print_footer_scripts` at priority 9
+// (Loader::enqueue_assets), i.e. in the footer. Anything enqueued the normal way
+// prints in the head and therefore loses to Carbon Fields at equal specificity —
+// which it is, since both style .cf-complex__group-head as a single class.
+// Running at priority 10 on the same hook puts this stylesheet immediately after
+// theirs, so the overrides win without !important on every rule.
+add_action( 'admin_print_footer_scripts', 'nsfc_admin_styles', 10 );
 add_filter( 'rest_prepare_program', 'nsfc_hide_inline_term_creation' );
 add_filter( 'rest_prepare_camp-session', 'nsfc_hide_inline_term_creation' );
 
@@ -27,10 +35,20 @@ unset( $nsfc_taxonomy );
  * version bump, and stale-cached admin CSS looks exactly like an edit that
  * didn't apply.
  */
-function nsfc_admin_styles( $hook ) {
+function nsfc_admin_styles() {
+    // admin_print_footer_scripts passes no argument, so the screen comes from
+    // the global the admin sets up rather than from a parameter.
+    global $hook_suffix;
+
     $screens = [ 'post.php', 'post-new.php', 'edit-tags.php', 'term.php' ];
 
-    if ( ! in_array( $hook, $screens, true ) ) {
+    // Carbon Fields theme-options pages (Settings → Financial Assistance) get a
+    // generated hook suffix like
+    // settings_page_crb_carbon_fields_container_financial_assistance — matched
+    // by prefix so adding another options page doesn't need this list edited.
+    $is_options_page = false !== strpos( $hook_suffix, 'crb_carbon_fields_container' );
+
+    if ( ! $is_options_page && ! in_array( $hook_suffix, $screens, true ) ) {
         return;
     }
 

@@ -10,6 +10,87 @@ add_action( 'carbon_fields_register_fields', 'nsfc_register_season_landing_field
 add_action( 'carbon_fields_register_fields', 'nsfc_register_camps_fields' );
 add_action( 'carbon_fields_register_fields', 'nsfc_register_camp_type_fields' );
 add_action( 'carbon_fields_register_fields', 'nsfc_register_level_hub_fields' );
+add_action( 'carbon_fields_register_fields', 'nsfc_register_financial_aid_options' );
+add_action( 'carbon_fields_register_fields', 'nsfc_register_venue_fields' );
+
+/**
+ * Venue details. The venue's name is the post title; everything a venue needs
+ * to be said about it lives here once, not repeated on every program.
+ */
+function nsfc_register_venue_fields() {
+    Container::make( 'post_meta', 'Venue Details' )
+        ->where( 'post_type', '=', 'venue' )
+        ->add_fields( [
+            Field::make( 'textarea', 'nsfc_venue_address', 'Address' )
+                ->set_help_text( 'Street address. Leave blank until you have it — the venue still works without one.' ),
+            Field::make( 'text', 'nsfc_venue_map_url', 'Google Maps link' )
+                ->set_help_text( 'Paste the share link from Google Maps. Shown as a "Directions" link wherever this venue appears.' ),
+        ] );
+}
+
+/**
+ * Every venue, as select-field options: post ID => "Location — Venue name".
+ *
+ * The location prefix matters because venue pickers appear on programs and camp
+ * sessions that are themselves location-scoped, and two locations can
+ * reasonably have a "Field House". Untagged venues are listed without a prefix
+ * rather than hidden, so a half-set-up venue is still visible and fixable.
+ */
+function nsfc_venue_options() {
+    $options = [ '' => '— none —' ];
+
+    $venues = get_posts( [
+        'post_type'      => 'venue',
+        'posts_per_page' => -1,
+        'post_status'    => 'publish',
+        'orderby'        => 'title',
+        'order'          => 'ASC',
+    ] );
+
+    foreach ( $venues as $venue ) {
+        $terms  = wp_get_post_terms( $venue->ID, 'program_location', [ 'fields' => 'names' ] );
+        $prefix = ( $terms && ! is_wp_error( $terms ) ) ? implode( ' / ', $terms ) . ' — ' : '';
+
+        $options[ $venue->ID ] = $prefix . $venue->post_title;
+    }
+
+    return $options;
+}
+
+/**
+ * Financial assistance — site-wide content, edited at Settings → Financial
+ * Assistance.
+ *
+ * Previously split across three places: the heading and intro paragraph were
+ * hardcoded in single-program.php (so only a developer could change the
+ * sentence stating the club's position), while the steps and note lived in
+ * `nsfc_financial_aid_steps` / `nsfc_financial_aid_note` wp_options with no
+ * admin UI at all — set by WP-CLI, with the steps held as a JSON *string* that
+ * would silently empty the whole section if it ever became malformed.
+ *
+ * Deliberately one shared set for every location, not per-location. If a
+ * location ever needs its own wording, add the override inside
+ * nsfc_financial_aid() in functions.php — every template reads through that
+ * helper, so nothing else has to change.
+ */
+function nsfc_register_financial_aid_options() {
+    Container::make( 'theme_options', 'Financial Assistance' )
+        ->set_page_parent( 'options-general.php' )
+        ->add_fields( [
+            Field::make( 'text', 'nsfc_fa_heading', 'Heading' )
+                ->set_default_value( 'Financial assistance' )
+                ->set_help_text( 'The section heading on every program page that has this section switched on.' ),
+            Field::make( 'textarea', 'nsfc_fa_intro', 'Intro paragraph' )
+                ->set_help_text( 'Shown under the heading. This is the club\'s statement about financial aid — it appears on every program identically.' ),
+            Field::make( 'complex', 'nsfc_fa_steps', 'Steps' )
+                ->set_help_text( 'Rendered as a numbered list. The section is hidden entirely if there are no steps.' )
+                ->add_fields( [
+                    Field::make( 'text', 'step', 'Step' ),
+                ] ),
+            Field::make( 'text', 'nsfc_fa_note', 'Closing note' )
+                ->set_help_text( 'Optional. Shown under the steps — e.g. who to contact with questions.' ),
+        ] );
+}
 
 /**
  * Every published `program_location` term, as a select-field options array.
@@ -77,8 +158,9 @@ function nsfc_register_program_fields() {
             // Was "Venue / Location", which rendered on the page as "Location"
             // and read as if it meant the city — the job of the program_location
             // taxonomy. This is the pitch or building.
-            Field::make( 'text', 'venue', 'Venue' )
-                ->set_help_text( 'Where it meets — e.g. "Watson Soccer Complex". The city is set separately, in the Location box.' )
+            Field::make( 'select', 'venue', 'Venue' )
+                ->add_options( 'nsfc_venue_options' )
+                ->set_help_text( 'Picked from Venues so the name and address stay consistent everywhere. Add a missing one under Venues first. The city is set separately, in the Location box.' )
                 ->set_conditional_logic( [ [ 'field' => 'program_structure', 'value' => 'single' ] ] ),
 
             Field::make( 'separator', 'sep_pricing', 'Pricing' )
@@ -156,7 +238,8 @@ function nsfc_register_program_fields() {
                             Field::make( 'text', 'day', 'Day(s)' )
                                 ->set_help_text( 'e.g. "Saturdays" or "Mon / Wed"' ),
                             Field::make( 'text', 'time', 'Time' ),
-                            Field::make( 'text', 'venue', 'Venue' )
+                            Field::make( 'select', 'venue', 'Venue' )
+                                ->add_options( 'nsfc_venue_options' )
                                 ->set_help_text( 'Only when this differs from the program venue in Key details — e.g. games at a different complex from practices.' ),
                             Field::make( 'date', 'start_date', 'Start date' )
                                 ->set_help_text( 'Only when this pattern runs for a shorter span than the session — e.g. games starting a week after practices.' ),
@@ -198,7 +281,8 @@ function nsfc_register_program_fields() {
                         ->set_help_text( 'Each session (e.g. "Winter Session IV — February") can meet on more than one day per week — add one schedule row per day. Fill in a Registration URL once it\'s open; leave it blank for a not-yet-open future session (e.g. "Schedule posted September 1") — it\'ll be left out of the Register dropdown until a link is added.' )
                         ->add_fields( [
                             Field::make( 'text', 'session_label', 'Session name' ),
-                            Field::make( 'text', 'venue', 'Venue (optional)' )
+                            Field::make( 'select', 'venue', 'Venue (optional)' )
+                                ->add_options( 'nsfc_venue_options' )
                                 ->set_help_text( 'Only needed if this session meets somewhere different from other sessions of the same sub-program (e.g. a winter indoor venue vs. a summer outdoor one).' ),
                             // One row per weekday this session meets on. The day
                             // name and the list of dates are both derived from
@@ -298,7 +382,8 @@ function nsfc_register_program_fields() {
                 ->set_help_text( 'e.g. "Jun 8–11"' ),
             Field::make( 'date', 'start_date', 'Start Date' ),
             Field::make( 'date', 'end_date', 'End Date' ),
-            Field::make( 'text', 'venue', 'Venue' ),
+            Field::make( 'select', 'venue', 'Venue' )
+                ->add_options( 'nsfc_venue_options' ),
             Field::make( 'text', 'ages', 'Ages' ),
             Field::make( 'text', 'session_time', 'Time' ),
             Field::make( 'text', 'cost', 'Cost' ),

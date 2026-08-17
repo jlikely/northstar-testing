@@ -105,7 +105,7 @@ $level_badge = [
                 $date_label       = carbon_get_post_meta( $camp_id, 'date_label' );
                 $ages             = carbon_get_post_meta( $camp_id, 'ages' );
                 $session_time     = carbon_get_post_meta( $camp_id, 'session_time' );
-                $venue            = carbon_get_post_meta( $camp_id, 'venue' );
+                $venue            = nsfc_venue_name( carbon_get_post_meta( $camp_id, 'venue' ) );
                 $cost             = carbon_get_post_meta( $camp_id, 'cost' );
                 $registration_url = carbon_get_post_meta( $camp_id, 'registration_url' );
 

@@ -46,6 +46,157 @@
 	margin-bottom: 18px;
 }
 
+/* ── Repeater rows ────────────────────────────────────────────────────────── */
+
+/*
+ * Carbon Fields renders each row of a `complex` field as a numbered header
+ * (.cf-complex__group-head, containing .cf-complex__group-index) above a body of
+ * fields. Out of the box both are near-white — #fbfbfc on #e2e4e7 — so in a
+ * deeply nested group like Sub-programs → Sessions → Weekly schedule there is
+ * almost nothing marking where one row stops and the next starts.
+ *
+ * Black bar, white number, and a heavy top rule so each row reads as its own
+ * block. Same idea as the section separators above.
+ */
+
+.cf-complex__group-head {
+	background-color: #000;
+	border-color: #000;
+	border-top: 4px solid #000;
+	color: #fff;
+}
+
+/* Keep the hover state from reverting the border to Carbon Fields' grey. */
+.cf-complex__group-head:hover {
+	border-color: #000;
+}
+
+.cf-complex__group-index {
+	border-right-color: rgba(255, 255, 255, 0.3);
+	color: #fff;
+	font-weight: 700;
+}
+
+/*
+ * Hierarchical row numbers: 2.1, 2.3.4 — not a fresh "1" at every level.
+ *
+ * Carbon Fields renders each row's index as a plain integer counting from 1
+ * within its own repeater, so Session 2's meeting times restart at 1 and there
+ * is nothing tying them to the session they belong to.
+ *
+ * Done with CSS counters rather than JavaScript because rows are added,
+ * removed and dragged by React: counters renumber themselves on any DOM change,
+ * where a script would need to watch for it.
+ *
+ * The `:not()` clauses do the real work — they pin each rule to one nesting
+ * depth. Without them a nested row also matches the top-level selector and
+ * increments its counter, which corrupts the numbering of everything after it.
+ * Depth is read off `.cf-complex__group-body`, since a nested repeater is by
+ * definition inside its parent row's body.
+ *
+ * Each level hides the real number and reprints it, in the same rule, so a
+ * depth that somehow doesn't match keeps Carbon Fields' own number rather than
+ * rendering blank.
+ */
+
+/* Depth 1 */
+.cf-complex__groups:not(.cf-complex__group-body .cf-complex__groups) {
+	counter-reset: nsfc-row-1;
+}
+
+.cf-complex__group:not(.cf-complex__group-body .cf-complex__group) {
+	counter-increment: nsfc-row-1;
+}
+
+.cf-complex__group:not(.cf-complex__group-body .cf-complex__group) > .cf-complex__group-head > .cf-complex__group-index {
+	font-size: 0;
+}
+
+.cf-complex__group:not(.cf-complex__group-body .cf-complex__group) > .cf-complex__group-head > .cf-complex__group-index::before {
+	content: counter(nsfc-row-1);
+	font-size: 15px;
+}
+
+/* Depth 2 — e.g. Meeting times inside Session 2, numbered 2.1, 2.2 */
+.cf-complex__group-body .cf-complex__groups:not(.cf-complex__group-body .cf-complex__group-body .cf-complex__groups) {
+	counter-reset: nsfc-row-2;
+}
+
+.cf-complex__group-body .cf-complex__group:not(.cf-complex__group-body .cf-complex__group-body .cf-complex__group) {
+	counter-increment: nsfc-row-2;
+}
+
+.cf-complex__group-body .cf-complex__group:not(.cf-complex__group-body .cf-complex__group-body .cf-complex__group) > .cf-complex__group-head > .cf-complex__group-index {
+	font-size: 0;
+}
+
+.cf-complex__group-body .cf-complex__group:not(.cf-complex__group-body .cf-complex__group-body .cf-complex__group) > .cf-complex__group-head > .cf-complex__group-index::before {
+	content: counter(nsfc-row-1) "." counter(nsfc-row-2);
+	font-size: 13px;
+}
+
+/* Depth 3 — Sub-programs → Sessions → Weekly schedule, numbered 1.2.3 */
+.cf-complex__group-body .cf-complex__group-body .cf-complex__groups {
+	counter-reset: nsfc-row-3;
+}
+
+.cf-complex__group-body .cf-complex__group-body .cf-complex__group {
+	counter-increment: nsfc-row-3;
+}
+
+.cf-complex__group-body .cf-complex__group-body .cf-complex__group > .cf-complex__group-head > .cf-complex__group-index {
+	font-size: 0;
+}
+
+.cf-complex__group-body .cf-complex__group-body .cf-complex__group > .cf-complex__group-head > .cf-complex__group-index::before {
+	content: counter(nsfc-row-1) "." counter(nsfc-row-2) "." counter(nsfc-row-3);
+	font-size: 12px;
+}
+
+/* Nested numbers are longer, so the fixed 42px index cell needs to breathe. */
+.cf-complex__group-body .cf-complex__group-head > .cf-complex__group-index {
+	width: auto;
+	min-width: 42px;
+	padding: 0 8px;
+}
+
+.cf-complex__group-title {
+	color: #fff;
+}
+
+/* The row's own buttons (remove, collapse) sit on the black bar now. */
+.cf-complex__group-actions .cf-complex__group-action {
+	color: rgba(255, 255, 255, 0.75);
+}
+
+.cf-complex__group-actions .cf-complex__group-action:hover {
+	color: #fff;
+}
+
+/* Air between rows, so the top rule reads as the start of something. */
+.cf-complex__group + .cf-complex__group {
+	margin-top: 22px;
+}
+
+/*
+ * Nested repeaters get a lighter bar and a thinner rule. Three levels of solid
+ * black (Sub-programs → Sessions → Weekly schedule) turns the box into a wall
+ * and loses the nesting that the indent is trying to show.
+ */
+.cf-complex .cf-complex .cf-complex__group-head {
+	background-color: #2c3338;
+	border-color: #2c3338;
+	border-top-width: 3px;
+}
+
+.cf-complex .cf-complex .cf-complex__group-head:hover {
+	border-color: #2c3338;
+}
+
+.cf-complex .cf-complex .cf-complex__group + .cf-complex__group {
+	margin-top: 16px;
+}
+
 /* ── Unused fields on the term screens ────────────────────────────────────── */
 
 /*

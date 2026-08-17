@@ -47,8 +47,9 @@ function nsfc_register_taxonomies() {
         'rewrite'      => [ 'slug' => 'level' ],
     ] );
 
-    // Location
-    register_taxonomy( 'program_location', $post_types, [
+    // Location — also attached to `venue`, so each location owns its venues and
+    // program_location stays the single source of truth for which locations exist.
+    register_taxonomy( 'program_location', array_merge( $post_types, [ 'venue' ] ), [
         'labels' => [
             'name'          => 'Locations',
             'singular_name' => 'Location',
