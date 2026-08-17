@@ -575,14 +575,22 @@ finished state, not a stub — tag a `program` or `camp-session` post with
 required.
 - `/adult-soccer/`, `/upsl/`, `/tryouts/` → static WP pages (not location-specific)
 
-**Two programs are currently mis-tagged across locations** (found 2026-08-16).
-Posts 211 and 78 are tagged both `rochester` and `albert-lea`, so both render on
-Albert Lea's season pages — but their venues are in Rochester ("North Star FC,
-380 Woodlake Dr SE, Rochester" and "Watson Soccer Complex"). The filtering works
-exactly as designed; the tagging claims something untrue. One post can't serve
-two locations while its venue, dates and costs are location-specific. Resolving
-this — separate posts per location, or dropping the tag — is the prerequisite
-for putting the location in program URLs.
+**A program tagged to several locations is correct, not a mistake** (confirmed
+by the user 2026-08-16). Some programs are **centralized in Rochester** and open
+to players from every location — tryouts are the clearest example. Those are one
+program, at one venue, that should appear in the listings for each location that
+feeds it. Posts 211 and 78 are tagged `rochester` + `albert-lea` and hold
+Rochester venues ("North Star FC, 380 Woodlake Dr SE, Rochester", "Watson Soccer
+Complex"); that is the intended shape.
+
+Do **not** "fix" this by splitting them into per-location posts. That would
+duplicate identical listings across locations, which is the thing
+single-sourcing exists to avoid.
+
+The consequence to keep in mind: a visitor browsing Albert Lea can legitimately
+see a Rochester address. The venue is already shown on the card's program page,
+so it is accurate rather than misleading — but if centralized programs become
+common it may be worth labelling them as such in the listing.
 
 Program CPT posts use the `program_location` taxonomy (terms: `rochester`, `austin`,
 `albert-lea`, `winona`) so a program can eventually be scoped to the location it's

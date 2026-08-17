@@ -53,22 +53,33 @@ A nested permalink must therefore either pick one canonical combination — so
 the other combinations get a URL naming a season or city the visitor isn't in —
 or publish identical content at several URLs.
 
-## The blocker is content, not routing
+## Multi-location programs are intentional — this is the answer to decision 1
 
-**Posts 78 and 211 are tagged to Albert Lea but hold Rochester content.**
+Initially recorded here as a tagging bug. **The user confirmed on 2026-08-16
+that it is deliberate.** Some programs are **centralized in Rochester** and open
+to players from every location — tryouts being the clearest case. One program,
+one venue, listed under each location it serves:
 
 ```
-#211  venue: North Star FC, 380 Woodlake Dr SE, Rochester
-#78   session venue: Watson Soccer Complex          (also Rochester)
+#211  venue: North Star FC, 380 Woodlake Dr SE, Rochester   tagged rochester + albert-lea
+#78   session venue: Watson Soccer Complex   (Rochester)    tagged rochester + albert-lea
 ```
 
-Both render on Albert Lea's season pages today, and `?from=234` gives them an
-Albert Lea breadcrumb over a Rochester address. The `program_location` filtering
-works exactly as designed; the *tagging* asserts something untrue.
+Splitting these into per-location posts would duplicate identical listings
+across locations — exactly what single-sourcing exists to prevent.
 
-One post cannot serve two locations while venue, dates and cost are
-location-specific. Until that's resolved, adding the location to the URL would
-publish the wrong thing more confidently than the flat URL does.
+**This settles the URL question in favour of the flat permalink.** If one post
+legitimately belongs to several locations, a location-scoped permalink has no
+canonical form: `/youth-soccer/albert-lea/summer-rec-league/` and
+`/youth-soccer/rochester/summer-rec-league/` would be the same page, and picking
+one means the other location's visitors get a URL naming a city they didn't
+choose. The hierarchy belongs in the breadcrumb — where it now is, and where
+`?from=` makes it reflect the route actually taken.
+
+The remaining nuance is presentation, not structure: a visitor browsing Albert
+Lea can see a Rochester address. That's accurate — the venue is shown — but if
+centralized programs become common, labelling them in the listing ("Held in
+Rochester") would be clearer than changing any URL.
 
 ## Does this matter for SEO?
 
@@ -87,49 +98,50 @@ So: location in the URL is worth doing for **human clarity and IA correctness**
 the SEO lever it appears to be, and it should not jump the queue ahead of
 having any metadata at all.
 
-## Decisions needed before any of this is buildable
+## Decisions
 
-1. **Can one program post serve two locations?** If yes, nested URLs can't be
-   canonical and should stay flat. If no, programs become one post per location
-   and nested URLs are trivially correct. *This is a question about how the club
-   actually operates, not about the code.*
-2. **Are posts 78 and 211 genuinely offered in Albert Lea?** If yes they need
-   their own venue/dates/costs, so they're separate posts. If no, the tag comes
-   off. Either way the current state is wrong.
-3. **Does a program's URL name its season?** Probably not — a program spanning
-   three seasons has no canonical one, and the season is already in the
-   breadcrumb. `/youth-soccer/{location}/{program}/` may be the right depth.
-4. **Is `?from=` acceptable in the interim?** It works and canonicalises, but
-   it's opaque in a shared link. Alternatives: drop it and accept an arbitrary
-   season in the breadcrumb, or use a readable slug (`?from=rochester-fall`).
+1. ~~**Can one program post serve two locations?**~~ **Answered 2026-08-16:
+   yes.** Centralized programs (tryouts and similar) run in Rochester and serve
+   every location. This is why the permalink stays flat.
+2. ~~**Are posts 78 and 211 genuinely offered in Albert Lea?**~~ **Answered:
+   yes**, as centralized Rochester-based programs. Leave the tags alone.
+3. **Still open — is `?from=` good enough?** It works and canonicalises, but is
+   opaque in a shared link. Alternatives: a readable slug
+   (`?from=rochester-spring-summer`), or dropping it and accepting an arbitrary
+   season in the breadcrumb. Cosmetic, not structural.
+4. **Still open — should centralized programs be labelled** in the listings, so
+   an Albert Lea visitor sees "Held in Rochester" before clicking? This is the
+   real residue of decision 1, and it's a content/UX question rather than a URL
+   one.
 
-## Phases (not started)
+## Phases
 
-- [ ] **0. Answer decisions 1 and 2** — content questions, needs a human.
-- [ ] **1. Fix the Albert Lea tagging** to match the answer. Either split into
-      per-location posts or remove the tag. Verify Albert Lea's season pages
-      afterwards.
-- [ ] **2. Choose the target URL shape** (decision 3) and write it down here
-      before building anything.
-- [ ] **3. Add an SEO plugin and configure metadata.** Deliberately before
-      permalink changes: permalinks are the hardest thing to change later, and
-      a URL move without redirects and canonicals is worse than no move.
-- [ ] **4. Implement nested permalinks** — rewrite rules plus a `post_type_link`
-      filter, and 301s from `/program/{slug}/` so existing links survive.
-- [ ] **5. Revisit `?from=`** (decision 4) — it may become unnecessary once a
-      program belongs to exactly one location.
+- [x] **0. Answer decisions 1 and 2** — done 2026-08-16. Multi-location tagging
+      is intentional.
+- [x] **1. Fix the Albert Lea tagging** — no change needed; the tags are
+      correct.
+- [ ] **2. Decide whether to label centralized programs** in listings
+      (decision 4). Most likely next piece of work.
+- [ ] **3. Revisit `?from=` readability** (decision 3), if it ever bothers
+      anyone.
+
+Nested permalinks are **not planned**. Decision 1 rules them out: a program
+belonging to several locations has no canonical location-scoped URL.
 
 ## Do not
 
-- Do not add nested permalinks before phase 1. It bakes the current ambiguity
-  into URLs.
-- Do not change permalinks without 301s from the flat form.
+- Do not split multi-location programs into per-location posts. That duplicates
+  identical listings and defeats single-sourcing.
+- Do not add nested permalinks. See decision 1.
+- Do not change permalinks without 301s from the flat form, if this is ever
+  revisited.
 - Do not treat this as an SEO task. It's an IA task with a small SEO side
-  effect.
+  effect, and the site has no metadata at all yet — that's the bigger gap.
 
 ## Status
 
-**Not started.** Written 2026-08-16 at the end of a session that fixed the
-breadcrumb (the immediate defect) and corrected CLAUDE.md's URL documentation.
-The permalink question itself was deliberately deferred — it is gated on
-decisions 1 and 2, which are the user's to make.
+**Resolved for now.** Written 2026-08-16; decisions 1 and 2 answered the same
+day, which settled the permalink question in favour of the existing flat URL.
+What remains (decisions 3 and 4) is presentation, not structure. The session
+that produced this also fixed the breadcrumb — the actual defect — and corrected
+CLAUDE.md, which had documented a nested URL form that never resolved.
