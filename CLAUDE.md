@@ -41,6 +41,11 @@ below — so a missing prototype breaks content entry, not the site.
 
 If a task is blocked, set its `status` to `blocked` and add a `blocker` note explaining why. Do not skip ahead to later phases.
 
+**Open decision document:** `url-structure-plan.md` (started 2026-08-16) covers
+whether program permalinks should carry the location. Not started, and gated on
+a content question — two programs are tagged to Albert Lea while holding
+Rochester venues. Read it before touching `rewrite` on the `program` CPT.
+
 **Once every phase in `build-plan.yaml` is `done`:** check `location-scoping-plan.md` (also in this directory) for active follow-on work. It's a separate tracking file, not part of `build-plan.yaml`'s phase list — started 2026-08-14 to make Competitive/Recreational/Camps fully location-aware for all 4 locations. Same resumption pattern: read the whole file, jump to the first unchecked phase.
 
 ## Environment
@@ -224,6 +229,31 @@ the page under a "Location" heading, which is worth revisiting — the city come
 from the `program_location` taxonomy, and two things called Location is the
 confusion this rename was meant to start unpicking.
 
+### Listing cards: one format, mostly derived (2026-08-16)
+Every program card on the season landing pages shows the same four things:
+**title, age range, description, date range** — `age_label`,
+`card_description`, and `nsfc_program_date_range()`.
+
+Only 5 of 16 programs had program-level dates, because most carry dates on
+their sessions instead. Rather than have those retyped, `nsfc_program_date_range()`
+**derives the span** — earliest start to latest end across `sessions`, their
+`session_times`, and `sub_programs[].sessions[].schedule[]` — whenever the
+program's own Start/End dates are blank. Those two pickers are the override and
+always win.
+
+`age_label` and the two date pickers are the **only** Key details fields that
+stay visible when `program_structure` is `sub_programs`. A sub-programs page has
+no single age or date of its own (each sub-program carries its own), so on those
+programs these three feed the listing card and nothing else. Post 210 was given
+`Ages 3–5`, spanning Lil Dribblers' 3–4 and Junior Kickers' 4–5.
+
+**Known limitation — multi-season programs.** A derived span covers everything
+scheduled, so a program tagged to three seasons shows one range on all three
+season pages: post 210 reads `Feb 2 – Sep 24, 2026` on the Winter, Spring/Summer
+*and* Fall listings. Cards aren't season-scoped, and sessions aren't mapped to
+seasons, so fixing this properly means modelling that. The override exists as
+the stopgap.
+
 ### Sessions: one scheduling model (consolidated 2026-08-16)
 A Program has exactly one way to say when it meets: the **`sessions`** repeater.
 It replaced four overlapping groups — `schedule_practices` and `schedule_games`
@@ -250,9 +280,22 @@ separate table that pointed at. Its practices venue moved to the program-level
 `venue` field. Venue and dates sit on the *row*, not the session, because
 practices and games genuinely differ on both.
 
-**Sub-programs still have their own nested session shape and were not touched.**
-Unifying it with this one is the obvious follow-up, but its `schedule[]` rows
-store lists of days-of-month ("2/2, 9, 16, 23") that this model can't express.
+**Sub-programs keep their own nested session shape**, but their weekly schedule
+rows are now dates too (2026-08-16). Each `schedule[]` row was a free-text pair
+— `day` ("Mondays") and `dates` ("2/2, 9, 16, 23") — and is now just
+`start_date` + `end_date` pickers plus `time`. The day name and the full list of
+class dates are derived by `nsfc_weekly_schedule_label()` in `inc/dates.php`,
+so the weekday can no longer contradict the dates.
+
+Stored as a first/last date rather than one picker per class deliberately: a
+four-week session meeting four days a week would be 16 pickers, which is worse
+to enter than the free text it replaced. All 36 rows were verified strictly
+weekly, and matching the 2026 calendar exactly, before converting — the day
+names and dates agreed on every row, which is why the year is 2026 throughout.
+
+**A gap in a weekly run cannot be expressed.** Nothing in the current content
+has one; a session that skips a holiday week would need the gap noting in the
+session's Note, or the model extending.
 
 Snapshot `pre-session-consolidation` holds the pre-migration database.
 
@@ -493,8 +536,28 @@ Structure:
 - `/youth-soccer/{location}/{competitive|recreational}/` → **level hub** (WP page using
   level-hub.php template) — see "Level Hub pages" below
 - `/youth-soccer/rochester/competitive/spring-summer/` → season landing (WP page using season-landing.php template)
-- `/youth-soccer/rochester/competitive/spring-summer/developmental-academy/` → program CPT single
-- `/youth-soccer/rochester/recreational/fall/fall-rec-league/` → program CPT single
+- **`/program/{slug}/` → program CPT single.** Note this is **flat, not nested** —
+  the location/level/season path above does *not* continue into the program.
+  This file previously documented
+  `/youth-soccer/rochester/competitive/spring-summer/developmental-academy/`;
+  that form has never resolved and 404s. The permalink has been
+  `[ 'slug' => 'program', 'with_front' => false ]` since the repo's first commit.
+
+  It's flat because a program is single-sourced across every season it runs in,
+  and can be tagged to several locations — post 210 is in 3 seasons, post 211 in
+  2 locations. A nested permalink would have to pick one canonical combination
+  or publish the same content at several URLs. **Putting the location in the URL
+  is worth doing eventually**, but it's gated on programs becoming
+  location-specific first (see the Albert Lea note below), not on routing.
+
+  The program page instead reconstructs the hierarchy in its breadcrumb, and
+  season landing cards pass **`?from={page_id}`** so it knows which season page
+  you came through — see `nsfc_program_referring_season_page()` in
+  `inc/breadcrumbs.php`. Without it the trail took `$season_terms[0]`, so
+  arriving at Kickstarters from Spring/Summer produced a "Fall" breadcrumb
+  pointing back at a page the visitor was never on. The `from` value is
+  validated against the program's own terms before it's trusted, and anything
+  bogus falls back to the old behaviour.
 - `/youth-soccer/rochester/camps/` → camps hub
 
 **All 4 locations use the same templates** (as of 2026-08-15, Phase 5 of
@@ -511,6 +574,15 @@ finished state, not a stub — tag a `program` or `camp-session` post with
 `austin` and it appears on Austin's pages automatically, no page edits
 required.
 - `/adult-soccer/`, `/upsl/`, `/tryouts/` → static WP pages (not location-specific)
+
+**Two programs are currently mis-tagged across locations** (found 2026-08-16).
+Posts 211 and 78 are tagged both `rochester` and `albert-lea`, so both render on
+Albert Lea's season pages — but their venues are in Rochester ("North Star FC,
+380 Woodlake Dr SE, Rochester" and "Watson Soccer Complex"). The filtering works
+exactly as designed; the tagging claims something untrue. One post can't serve
+two locations while its venue, dates and costs are location-specific. Resolving
+this — separate posts per location, or dropping the tag — is the prerequisite
+for putting the location in program URLs.
 
 Program CPT posts use the `program_location` taxonomy (terms: `rochester`, `austin`,
 `albert-lea`, `winona`) so a program can eventually be scoped to the location it's

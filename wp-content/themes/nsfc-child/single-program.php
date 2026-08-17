@@ -68,8 +68,31 @@ while ( have_posts() ) :
     // Build the ancestor trail from taxonomy terms — program CPT posts aren't
     // hierarchical, so Yoast's default breadcrumb can't infer Youth Soccer >
     // {Location} > {Level} > {Season} on its own (it would just show Home > title).
+    // A program single-sourced across seasons has several season terms, and
+    // $season_terms[0] is an arbitrary one — arriving from Spring/Summer used to
+    // produce a "Fall" breadcrumb pointing back at a page you were never on.
+    // Season landing cards pass ?from={page_id}; when it names a season page
+    // this program genuinely belongs to, that page is the trail.
+    $from_page = nsfc_program_referring_season_page( get_the_ID() );
+
     $crumbs = [ [ 'label' => 'Home', 'url' => home_url( '/' ) ] ];
-    if ( $location_slug ) {
+
+    if ( $from_page ) {
+        foreach ( array_reverse( get_post_ancestors( $from_page->ID ) ) as $ancestor_id ) {
+            $crumbs[] = [
+                'label' => get_the_title( $ancestor_id ),
+                'url'   => get_permalink( $ancestor_id ),
+            ];
+        }
+        $crumbs[] = [
+            'label' => get_the_title( $from_page->ID ),
+            'url'   => get_permalink( $from_page->ID ),
+        ];
+
+        // The subtitle takes the same arbitrary [0] terms, so it needs the same
+        // correction — otherwise the heading and the trail disagree.
+        $subtitle_parts = nsfc_season_page_labels( $from_page->ID ) ?: $subtitle_parts;
+    } elseif ( $location_slug ) {
         $crumbs[] = [ 'label' => 'Youth Soccer', 'url' => home_url( '/youth-soccer/' ) ];
         $loc_page = get_page_by_path( "youth-soccer/{$location_slug}" );
         if ( $loc_page ) {
@@ -343,9 +366,17 @@ while ( have_posts() ) :
                   <?php if ( ! empty( $session['schedule'] ) ) : ?>
                     <table class="table table-sm table-borderless mb-0"><tbody>
                       <?php foreach ( $session['schedule'] as $row ) : ?>
+                      <?php
+                      // Day name and date list are both worked out from the two
+                      // pickers — see nsfc_weekly_schedule_label in inc/dates.php.
+                      $week = nsfc_weekly_schedule_label( $row['start_date'] ?? '', $row['end_date'] ?? '' );
+                      if ( ! $week['day'] ) {
+                          continue;
+                      }
+                      ?>
                       <tr>
-                        <td class="small text-muted ps-0 pe-3 py-1"><?php echo esc_html( $row['day'] ); ?></td>
-                        <td class="small ps-0 py-1"><?php echo esc_html( trim( $row['dates'] . ( $row['time'] ? ' · ' . $row['time'] : '' ) ) ); ?></td>
+                        <td class="small text-muted ps-0 pe-3 py-1"><?php echo esc_html( $week['day'] ); ?></td>
+                        <td class="small ps-0 py-1"><?php echo esc_html( trim( $week['dates'] . ( $row['time'] ? ' · ' . $row['time'] : '' ) ) ); ?></td>
                       </tr>
                       <?php endforeach; ?>
                     </tbody></table>

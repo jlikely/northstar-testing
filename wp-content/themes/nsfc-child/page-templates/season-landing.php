@@ -68,11 +68,19 @@ $programs = new WP_Query( [
 // because they needed more than the generic program template). Child pages link
 // directly to their real content instead of through a stub program post.
 $cards = [];
+// Captured before the loop: the_post() inside it moves get_the_ID() onto each
+// program, so this page's own ID has to be read first.
+$season_page_id = get_the_ID();
 while ( $programs->have_posts() ) {
     $programs->the_post();
     $cards[] = [
         'title'      => get_the_title(),
-        'permalink'  => get_permalink(),
+        // `from` tells single-program.php which season page the visitor came
+        // through. A program is single-sourced across every season it runs in,
+        // so its own taxonomy can't say which one you were looking at — without
+        // this, the program's breadcrumb picks the first season term and can
+        // send you "back" to a season you were never on.
+        'permalink'  => add_query_arg( 'from', $season_page_id, get_permalink() ),
         'badge'      => carbon_get_post_meta( get_the_ID(), 'age_label' ),
         // The card blurb is its own field in the Program Details box, not the
         // WordPress Excerpt. The excerpt lived in a sidebar panel outside that

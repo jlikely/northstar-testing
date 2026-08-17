@@ -59,14 +59,16 @@ function nsfc_register_program_fields() {
                 ->set_default_value( 'single' )
                 ->set_help_text( 'Choose "Several named sub-programs" only when one page covers 2+ separately-run offerings that each need their own age range, cost and Register button (e.g. Kickstarters = Lil Dribblers + Junior Kickers). Everything below changes to match.' ),
 
+            // Age and dates stay visible for sub-program programs too, unlike
+            // the rest of Key details. Every listing card shows title / age /
+            // description / dates, and a sub-program page has no single age or
+            // date of its own to fall back on — each sub-program carries its
+            // own. So on those, these two feed the card and nothing else.
             Field::make( 'text', 'age_label', 'Age range' )
-                ->set_help_text( 'e.g. "Ages 9–12" or "Grades 3–8"' )
-                ->set_conditional_logic( [ [ 'field' => 'program_structure', 'value' => 'single' ] ] ),
+                ->set_help_text( 'e.g. "Ages 9–12" or "Grades 3–8". Shown as the badge on this program\'s listing card. On a sub-programs page, give the range across all of them ("Ages 3–5") — the page itself still shows each sub-program\'s own.' ),
             Field::make( 'date', 'start_date', 'Start date' )
-                ->set_help_text( 'The dates shown on the site are built from this and the end date — you don\'t type them out.' )
-                ->set_conditional_logic( [ [ 'field' => 'program_structure', 'value' => 'single' ] ] ),
-            Field::make( 'date', 'end_date', 'End date' )
-                ->set_conditional_logic( [ [ 'field' => 'program_structure', 'value' => 'single' ] ] ),
+                ->set_help_text( 'Optional. Leave both dates blank and the listing card works out the span from the sessions below. Fill them in to override that — worth doing on a program tagged to several seasons, where one span reads oddly on some of its season pages.' ),
+            Field::make( 'date', 'end_date', 'End date' ),
             Field::make( 'checkbox', 'tryout_required', 'Tryout required' )
                 ->set_conditional_logic( [ [ 'field' => 'program_structure', 'value' => 'single' ] ] ),
             Field::make( 'text', 'format', 'Format' )
@@ -198,14 +200,21 @@ function nsfc_register_program_fields() {
                             Field::make( 'text', 'session_label', 'Session name' ),
                             Field::make( 'text', 'venue', 'Venue (optional)' )
                                 ->set_help_text( 'Only needed if this session meets somewhere different from other sessions of the same sub-program (e.g. a winter indoor venue vs. a summer outdoor one).' ),
+                            // One row per weekday this session meets on. The day
+                            // name and the list of dates are both derived from
+                            // the two pickers (see nsfc_weekly_schedule_label),
+                            // so they can't disagree — the free-text pair this
+                            // replaced could say "Mondays" above a list of
+                            // Tuesdays. A class meeting twice a week is two rows.
                             Field::make( 'complex', 'schedule', 'Weekly schedule' )
+                                ->set_help_text( 'One row per weekday. The site works out the day name and every class date from the two dates below — you don\'t list them.' )
                                 ->add_fields( [
-                                    Field::make( 'text', 'day', 'Day(s)' )
-                                        ->set_help_text( 'e.g. "Mondays"' ),
-                                    Field::make( 'text', 'dates', 'Dates' )
-                                        ->set_help_text( 'e.g. "2/2, 9, 16, 23"' ),
+                                    Field::make( 'date', 'start_date', 'First class' )
+                                        ->set_help_text( 'The weekday is taken from this date.' ),
+                                    Field::make( 'date', 'end_date', 'Last class' )
+                                        ->set_help_text( 'Classes repeat weekly from the first date up to and including this one.' ),
                                     Field::make( 'text', 'time', 'Time' )
-                                        ->set_help_text( 'e.g. "4:30pm"' ),
+                                        ->set_help_text( 'e.g. "4:30pm", or "4:30pm & 5:30pm" when the same day runs two classes.' ),
                                 ] ),
                             Field::make( 'text', 'note', 'Note (optional)' )
                                 ->set_help_text( 'Shown under the schedule — or in place of it if the Weekly schedule above is left empty (e.g. "Schedule posted September 1").' ),
