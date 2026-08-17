@@ -29,9 +29,11 @@ function nsfc_register_cpts() {
         // program with a structured schedule. The two posts that used it were
         // moved to the `description` field (2026-08-16).
         // No 'thumbnail': no template in this theme renders a featured image.
-        // 'excerpt' stays — it's the program's card description on the season
-        // landing pages, and 14 of 16 programs rely on it.
-        'supports'          => [ 'title', 'excerpt', 'custom-fields' ],
+        // No 'excerpt' either, as of 2026-08-16 — the card blurb moved to the
+        // `card_description` field so every field that matters lives in one
+        // ordered box. Leaving the sidebar Excerpt panel in place would have
+        // meant two fields for one job, with only one of them wired up.
+        'supports'          => [ 'title', 'custom-fields' ],
         'rewrite'           => [ 'slug' => 'program', 'with_front' => false ],
     ] );
 

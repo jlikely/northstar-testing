@@ -172,10 +172,21 @@ schedule" condition is gone. The 2 programs that had `post_content` (210
 Kickstarters Classes, 81 Recreation Classes) were moved to it and their
 `post_content` cleared.
 
-`excerpt` is still supported on `program` and is **not** the same field — it's
-the card description on the season landing pages, used by 14 of 16 programs.
-Description = the paragraph on the program's own page; Excerpt = the blurb on
-its card. Post 81 has different text in each, which is why they weren't merged.
+**The WordPress Excerpt is gone from `program` too** (2026-08-16). It was the
+card blurb on the season landing pages, but it lived in a sidebar panel outside
+the Program Details box — the single most important field for the listing pages
+was the one field not in the ordered box. It is now the `card_description`
+Carbon field, second in Key details, and `season-landing.php` reads that.
+
+That move also fixed a regression this same session introduced: post 210 had no
+*manual* excerpt, so WordPress had been auto-deriving one from `post_content`.
+Clearing `post_content` when the block editor was removed silently emptied its
+card. All 14 real excerpts were migrated; 210's was reconstructed from the first
+sentence of its Intro.
+
+The two summaries are deliberately separate and named for **where they appear**:
+`description` is "Intro — on this program's page", `card_description` is "Card
+description — on listing pages". Post 81 has genuinely different text in each.
 
 `camp-session` lost both `editor` and `excerpt` (0 posts used either, and no
 template reads them — a camp renders as a card + modal built from Carbon Fields

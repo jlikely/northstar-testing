@@ -40,8 +40,17 @@ function nsfc_register_program_fields() {
             // with only help text saying so. Carbon Fields' conditional logic
             // now hides whatever doesn't apply.
             Field::make( 'separator', 'sep_key_details', 'Key details' ),
-            Field::make( 'textarea', 'description', 'Intro' )
-                ->set_help_text( 'One short paragraph, shown under the title on the program page. Plain text — no formatting.' ),
+            // Two summaries, deliberately separate, because they appear in
+            // different places and read differently. Named for where they show
+            // up rather than for what they are.
+            Field::make( 'textarea', 'description', 'Intro — on this program\'s page' )
+                ->set_help_text( 'The paragraph under the title when someone opens this program. Plain text, no formatting.' ),
+            // Was the WordPress Excerpt, which lived in a sidebar panel outside
+            // this box and was easy to miss entirely — and which silently
+            // emptied itself on any program whose excerpt had been auto-derived
+            // from the block editor content this box replaced.
+            Field::make( 'textarea', 'card_description', 'Card description — on listing pages' )
+                ->set_help_text( 'One sentence shown on this program\'s card on the season listing pages. It does NOT appear on the program\'s own page, so it can repeat the intro.' ),
             Field::make( 'select', 'program_structure', 'What kind of program is this?' )
                 ->add_options( [
                     'single'       => 'One program',
@@ -209,9 +218,12 @@ function nsfc_register_program_fields() {
 
             // Notes and Financial assistance render on every program, including
             // sub-program ones, so neither is conditional.
-            Field::make( 'separator', 'sep_notes', 'Notes' ),
-            Field::make( 'textarea', 'notes', 'Notes' )
-                ->set_help_text( 'Shown near the bottom of the program page in a bordered callout box, above Financial assistance.' ),
+            // Named "Notes" until 2026-08-16, which read like a general-purpose
+            // description and drew copy that belonged in the Intro or the Card
+            // description. It is one specific highlighted box in one place.
+            Field::make( 'separator', 'sep_notes', 'Callout box' ),
+            Field::make( 'textarea', 'notes', 'Callout text' )
+                ->set_help_text( 'A single bordered, highlighted box near the bottom of the program page, just above Financial assistance. For a caveat someone must not miss — e.g. "Practice location is not guaranteed." Not a description of the program.' ),
 
             Field::make( 'separator', 'sep_financial_aid', 'Financial assistance' ),
             Field::make( 'checkbox', 'show_financial_aid', 'Show the Financial assistance section' )

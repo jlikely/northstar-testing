@@ -74,7 +74,11 @@ while ( $programs->have_posts() ) {
         'title'      => get_the_title(),
         'permalink'  => get_permalink(),
         'badge'      => carbon_get_post_meta( get_the_ID(), 'age_label' ),
-        'excerpt'    => get_the_excerpt(),
+        // The card blurb is its own field in the Program Details box, not the
+        // WordPress Excerpt. The excerpt lived in a sidebar panel outside that
+        // box, and on any program whose excerpt was auto-derived from the block
+        // editor it emptied itself the moment that editor was removed.
+        'excerpt'    => carbon_get_post_meta( get_the_ID(), 'card_description' ),
         'date_range' => nsfc_program_date_range( get_the_ID() ),
     ];
 }
