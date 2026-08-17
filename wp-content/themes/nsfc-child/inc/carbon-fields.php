@@ -32,88 +32,80 @@ function nsfc_register_program_fields() {
         ->where( 'post_type', '=', 'program' )
         ->add_fields( [
 
-            // Basic details
+            // Fields are in the order they appear on the program page. The two
+            // selects below (Structure, Pricing) exist so the either/or choices
+            // in this box are stated rather than inferred: filling Sub-programs
+            // used to silently switch off Key details, Pricing, Sessions and
+            // Registration, and the three cost fields were mutually exclusive
+            // with only help text saying so. Carbon Fields' conditional logic
+            // now hides whatever doesn't apply.
             Field::make( 'separator', 'sep_key_details', 'Key details' ),
             Field::make( 'textarea', 'description', 'Intro' )
-                ->set_help_text( 'One short paragraph, shown under the title on the program page. Plain text — no formatting. This replaced the block editor, which used to hold this copy.' ),
-            Field::make( 'text', 'age_label', 'Age Range' )
-                ->set_help_text( 'e.g. "Ages 9–12" or "Grades 3–8"' ),
+                ->set_help_text( 'One short paragraph, shown under the title on the program page. Plain text — no formatting.' ),
+            Field::make( 'select', 'program_structure', 'What kind of program is this?' )
+                ->add_options( [
+                    'single'       => 'One program',
+                    'sub_programs' => 'Several named sub-programs',
+                ] )
+                ->set_default_value( 'single' )
+                ->set_help_text( 'Choose "Several named sub-programs" only when one page covers 2+ separately-run offerings that each need their own age range, cost and Register button (e.g. Kickstarters = Lil Dribblers + Junior Kickers). Everything below changes to match.' ),
+
+            Field::make( 'text', 'age_label', 'Age range' )
+                ->set_help_text( 'e.g. "Ages 9–12" or "Grades 3–8"' )
+                ->set_conditional_logic( [ [ 'field' => 'program_structure', 'value' => 'single' ] ] ),
             Field::make( 'date', 'start_date', 'Start date' )
-                ->set_help_text( 'The first day of the program. The dates shown on the site are built from this and the end date — you don\'t type them out.' ),
-            Field::make( 'date', 'end_date', 'End date' ),
-            Field::make( 'checkbox', 'tryout_required', 'Tryout Required' ),
+                ->set_help_text( 'The dates shown on the site are built from this and the end date — you don\'t type them out.' )
+                ->set_conditional_logic( [ [ 'field' => 'program_structure', 'value' => 'single' ] ] ),
+            Field::make( 'date', 'end_date', 'End date' )
+                ->set_conditional_logic( [ [ 'field' => 'program_structure', 'value' => 'single' ] ] ),
+            Field::make( 'checkbox', 'tryout_required', 'Tryout required' )
+                ->set_conditional_logic( [ [ 'field' => 'program_structure', 'value' => 'single' ] ] ),
             Field::make( 'text', 'format', 'Format' )
-                ->set_help_text( 'e.g. "11v11" or "Small-sided"' ),
-            Field::make( 'text', 'venue', 'Venue / Location' ),
-            Field::make( 'text', 'cost_text', 'Cost (freeform)' )
-                ->set_help_text( 'Use this OR the costs/cost_tiers repeaters below — not both.' ),
+                ->set_help_text( 'e.g. "11v11" or "Small-sided"' )
+                ->set_conditional_logic( [ [ 'field' => 'program_structure', 'value' => 'single' ] ] ),
+            // Was "Venue / Location", which rendered on the page as "Location"
+            // and read as if it meant the city — the job of the program_location
+            // taxonomy. This is the pitch or building.
+            Field::make( 'text', 'venue', 'Venue' )
+                ->set_help_text( 'Where it meets — e.g. "Watson Soccer Complex". The city is set separately, in the Location box.' )
+                ->set_conditional_logic( [ [ 'field' => 'program_structure', 'value' => 'single' ] ] ),
 
-            // Registration
-            Field::make( 'separator', 'sep_registration', 'Registration' ),
-            Field::make( 'text', 'registration_window', 'Intro' )
-                ->set_help_text( 'First line above the Register buttons — e.g. "Opens June 1" or "March 27 – April 30, 2026".' ),
-            Field::make( 'text', 'registration_note', 'Registration Note' )
-                ->set_help_text( 'Second line, under the Intro above.' ),
-            Field::make( 'text', 'registration_url_boys', 'Register — Boys (URL)' ),
-            Field::make( 'text', 'registration_url_girls', 'Register — Girls (URL)' ),
-            Field::make( 'text', 'registration_url_team', 'Register — Team (URL)' ),
-            Field::make( 'text', 'registration_url_individual', 'Register — Individual (URL)' ),
-            // Moved here from the old "Extra Sections" group — it renders as a
-            // Register button alongside the four above, so it belongs with them.
-            Field::make( 'text', 'external_link_label', 'Register — Other (button label)' )
-                ->set_help_text( 'For a program that registers somewhere none of the four buttons above describes. Defaults to "Register" if left blank.' ),
-            Field::make( 'text', 'external_link_url', 'Register — Other (URL)' ),
-
-            // Coaching
-            Field::make( 'separator', 'sep_coaching', 'Coaching' ),
-            Field::make( 'checkbox', 'has_coaching', 'Show Coaches Column in Registration Block' ),
-            Field::make( 'text', 'coaching_note', 'Coaching Note' ),
-            Field::make( 'text', 'coaching_contact_label', 'Coaching Contact Label' ),
-            Field::make( 'text', 'coaching_contact_href', 'Coaching Contact URL (mailto: or https://)' ),
-
-            // Was one "Extra Sections" group holding three unrelated things that
-            // render in three different places on the page — the notes callout,
-            // the financial assistance toggle, and a Register button. Split into
-            // the sections they actually correspond to; the button moved up into
-            // Registration above.
-            Field::make( 'separator', 'sep_notes', 'Notes' ),
-            Field::make( 'textarea', 'notes', 'Notes' )
-                ->set_help_text( 'Shown near the bottom of the program page in a bordered callout box, above Financial assistance.' ),
-
-            Field::make( 'separator', 'sep_financial_aid', 'Financial assistance' ),
-            Field::make( 'checkbox', 'show_financial_aid', 'Show the Financial assistance section' )
-                ->set_help_text( 'The wording is the same on every program and is set site-wide, not here — this only decides whether the section appears.' ),
-
-            // Schedule
-            Field::make( 'separator', 'sep_schedule', 'Schedule' ),
-            Field::make( 'complex', 'schedule_practices', 'Practices' )
-                ->set_max( 1 )
-                ->add_fields( [
-                    Field::make( 'text', 'day', 'Day(s)' ),
-                    Field::make( 'text', 'location', 'Location' ),
-                    Field::make( 'text', 'dates', 'Dates (optional)' ),
+            Field::make( 'separator', 'sep_pricing', 'Pricing' )
+                ->set_conditional_logic( [ [ 'field' => 'program_structure', 'value' => 'single' ] ] ),
+            Field::make( 'select', 'pricing_style', 'How is this priced?' )
+                ->add_options( [
+                    'none'   => 'Not shown here',
+                    'single' => 'One price for the whole program',
+                    'grade'  => 'A different price per grade',
+                    'tiers'  => 'Early-bird and general pricing',
+                ] )
+                ->set_default_value( 'none' )
+                ->set_help_text( 'Pick one. Sessions priced individually are entered on the session itself, further down — leave this on "Not shown here" for those.' )
+                ->set_conditional_logic( [ [ 'field' => 'program_structure', 'value' => 'single' ] ] ),
+            Field::make( 'text', 'cost_text', 'Price' )
+                ->set_help_text( 'e.g. "$185 per player"' )
+                ->set_conditional_logic( [
+                    [ 'field' => 'program_structure', 'value' => 'single' ],
+                    [ 'field' => 'pricing_style', 'value' => 'single' ],
                 ] ),
-            Field::make( 'complex', 'schedule_games', 'Games' )
-                ->set_max( 1 )
-                ->add_fields( [
-                    Field::make( 'text', 'day', 'Day(s)' ),
-                    Field::make( 'text', 'kickoff', 'Kickoff Time' ),
-                    Field::make( 'text', 'location', 'Location' ),
-                    Field::make( 'text', 'dates', 'Dates (optional)' ),
-                ] ),
-
-            // Costs
-            Field::make( 'separator', 'sep_costs', 'Pricing' ),
-            Field::make( 'complex', 'costs', 'Grade-Based Costs' )
-                ->set_help_text( 'One row per grade. Leave empty to use Cost Tiers below.' )
+            Field::make( 'complex', 'costs', 'Price by grade' )
+                ->set_help_text( 'One row per grade.' )
+                ->set_conditional_logic( [
+                    [ 'field' => 'program_structure', 'value' => 'single' ],
+                    [ 'field' => 'pricing_style', 'value' => 'grade' ],
+                ] )
                 ->add_fields( [
                     Field::make( 'text', 'grade', 'Grade / Label' ),
                     Field::make( 'text', 'cost', 'Cost' ),
                 ] ),
-            Field::make( 'complex', 'cost_tiers', 'Tiered Pricing (Early Bird / General)' )
-                ->set_help_text( 'Two columns side by side. Leave empty to use Grade-Based Costs above.' )
+            Field::make( 'complex', 'cost_tiers', 'Pricing tiers' )
+                ->set_help_text( 'Rendered as columns side by side — typically one row for Early Bird and one for General.' )
+                ->set_conditional_logic( [
+                    [ 'field' => 'program_structure', 'value' => 'single' ],
+                    [ 'field' => 'pricing_style', 'value' => 'tiers' ],
+                ] )
                 ->add_fields( [
-                    Field::make( 'text', 'tier_label', 'Tier Label' )
+                    Field::make( 'text', 'tier_label', 'Tier name' )
                         ->set_help_text( 'e.g. "Early Bird — through Aug 1"' ),
                     Field::make( 'complex', 'tier_costs', 'Costs' )
                         ->add_fields( [
@@ -122,36 +114,59 @@ function nsfc_register_program_fields() {
                         ] ),
                 ] ),
 
-            // Sessions
-            Field::make( 'separator', 'sep_sessions', 'Sessions' ),
+            // Sessions — one model for every way a program can be scheduled.
+            // Replaced four overlapping field groups (2026-08-16): Practices and
+            // Games (each a repeater capped at one row), Practice Nights by
+            // Grade, and the old Sessions. Nothing used more than one of them —
+            // they were the same shape truncated at different depths, added one
+            // per offering as the site grew.
+            //
+            // A program that runs continuously is ONE session with several
+            // meeting-time rows ("Practices", "Games", or a grade name). A
+            // program sold in blocks is several sessions, each with its own
+            // dates and cost. Both are the same fields.
+            Field::make( 'separator', 'sep_sessions', 'Sessions' )
+                ->set_conditional_logic( [ [ 'field' => 'program_structure', 'value' => 'single' ] ] ),
             Field::make( 'complex', 'sessions', 'Sessions' )
+                ->set_help_text( 'One row per separately-priced block ("Session I", "Session II"). A program that just runs straight through a season needs a single row — leave its Name blank and the page shows a "Schedule" heading instead of "Sessions".' )
+                ->set_conditional_logic( [ [ 'field' => 'program_structure', 'value' => 'single' ] ] )
                 ->add_fields( [
-                    Field::make( 'text', 'session_label', 'Session Name' )
-                        ->set_help_text( 'e.g. "Winter Session I — October"' ),
+                    Field::make( 'text', 'session_label', 'Name' )
+                        ->set_help_text( 'e.g. "Winter Session I — October". Leave blank on a program with only one session.' ),
                     Field::make( 'date', 'session_start_date', 'Start date' ),
                     Field::make( 'date', 'session_end_date', 'End date' ),
-                    Field::make( 'text', 'session_cost', 'Cost' ),
-                    Field::make( 'text', 'session_note', 'Note (optional)' ),
-                ] ),
-
-            // Practice nights
-            Field::make( 'complex', 'practice_nights', 'Practice Nights by Grade' )
-                ->add_fields( [
-                    Field::make( 'text', 'grade', 'Grade' ),
-                    Field::make( 'text', 'nights', 'Nights' ),
+                    Field::make( 'text', 'session_cost', 'Cost' )
+                        ->set_help_text( 'Only when this session is priced separately from the others. A single price for the whole program belongs in Pricing above.' ),
+                    Field::make( 'complex', 'session_times', 'Meeting times' )
+                        ->set_help_text( 'When and where this session actually meets. One row per distinct pattern — "Practices" and "Games", or one row per grade when the night varies by grade.' )
+                        ->add_fields( [
+                            Field::make( 'text', 'label', 'Label' )
+                                ->set_help_text( 'e.g. "Practices", "Games", "3rd–4th grade"' ),
+                            Field::make( 'text', 'day', 'Day(s)' )
+                                ->set_help_text( 'e.g. "Saturdays" or "Mon / Wed"' ),
+                            Field::make( 'text', 'time', 'Time' ),
+                            Field::make( 'text', 'venue', 'Venue' )
+                                ->set_help_text( 'Only when this differs from the program venue in Key details — e.g. games at a different complex from practices.' ),
+                            Field::make( 'date', 'start_date', 'Start date' )
+                                ->set_help_text( 'Only when this pattern runs for a shorter span than the session — e.g. games starting a week after practices.' ),
+                            Field::make( 'date', 'end_date', 'End date' ),
+                        ] ),
+                    Field::make( 'text', 'session_note', 'Note' ),
                 ] ),
 
             // Sub-programs — for a program that's really 2+ named offerings
             // bundled together (e.g. "Lil Dribblers" + "Junior Kickers" under
             // "Kickstarters"), each with its own age range, cost, weekly
-            // schedule, and Register button. Leave empty for a normal single
-            // program. When this has entries, single-program.php renders
-            // these stacked sections INSTEAD OF the Key Details / Pricing /
-            // Schedule / Sessions / Registration sections above — fill in
-            // one or the other, not both.
-            Field::make( 'separator', 'sep_sub_programs', 'Sub-programs' ),
+            // schedule, and Register button. single-program.php renders these
+            // stacked sections INSTEAD OF Key details / Pricing / Sessions /
+            // Registration. That used to be implicit — filling this in silently
+            // switched the others off — and is now driven by the Structure
+            // select at the top of the box, which hides them outright.
+            Field::make( 'separator', 'sep_sub_programs', 'Sub-programs' )
+                ->set_conditional_logic( [ [ 'field' => 'program_structure', 'value' => 'sub_programs' ] ] ),
             Field::make( 'complex', 'sub_programs', 'Sub-programs' )
-                ->set_help_text( 'Use this when the program is really 2+ named offerings bundled together (e.g. Kickstarters = Lil Dribblers + Junior Kickers), each needing its own cost, schedule, and Register button. Leave empty for a normal single program — everything above (Key Details, Pricing, Schedule, Sessions) and the Registration section below are ignored when this has entries.' )
+                ->set_help_text( 'One row per named offering, each with its own age range, cost, schedule and Register button.' )
+                ->set_conditional_logic( [ [ 'field' => 'program_structure', 'value' => 'sub_programs' ] ] )
                 ->add_fields( [
                     Field::make( 'text', 'name', 'Name' ),
                     Field::make( 'textarea', 'description', 'Description' ),
@@ -190,6 +205,66 @@ function nsfc_register_program_fields() {
                             Field::make( 'text', 'registration_url', 'Registration URL' )
                                 ->set_help_text( 'Leave blank if not open yet — this session just won\'t appear in the Register dropdown until a link is added.' ),
                         ] ),
+                ] ),
+
+            // Notes and Financial assistance render on every program, including
+            // sub-program ones, so neither is conditional.
+            Field::make( 'separator', 'sep_notes', 'Notes' ),
+            Field::make( 'textarea', 'notes', 'Notes' )
+                ->set_help_text( 'Shown near the bottom of the program page in a bordered callout box, above Financial assistance.' ),
+
+            Field::make( 'separator', 'sep_financial_aid', 'Financial assistance' ),
+            Field::make( 'checkbox', 'show_financial_aid', 'Show the Financial assistance section' )
+                ->set_help_text( 'The wording is the same on every program and is set site-wide, not here — this only decides whether the section appears.' ),
+
+            // Registration is last in this box because it is last on the page —
+            // see "Registration is always last" in CLAUDE.md. Sub-programs carry
+            // their own per-session Register dropdown, so this whole group is
+            // hidden for them.
+            Field::make( 'separator', 'sep_registration', 'Registration' )
+                ->set_conditional_logic( [ [ 'field' => 'program_structure', 'value' => 'single' ] ] ),
+            Field::make( 'text', 'registration_window', 'Intro' )
+                ->set_help_text( 'First line above the Register buttons — e.g. "Opens June 1".' )
+                ->set_conditional_logic( [ [ 'field' => 'program_structure', 'value' => 'single' ] ] ),
+            Field::make( 'text', 'registration_note', 'Second line' )
+                ->set_help_text( 'Optional, shown under the Intro above.' )
+                ->set_conditional_logic( [ [ 'field' => 'program_structure', 'value' => 'single' ] ] ),
+            Field::make( 'text', 'registration_url_boys', 'Register — Boys (URL)' )
+                ->set_help_text( 'Every URL filled in below becomes its own button, in this order. Leave blank the ones that don\'t apply.' )
+                ->set_conditional_logic( [ [ 'field' => 'program_structure', 'value' => 'single' ] ] ),
+            Field::make( 'text', 'registration_url_girls', 'Register — Girls (URL)' )
+                ->set_conditional_logic( [ [ 'field' => 'program_structure', 'value' => 'single' ] ] ),
+            Field::make( 'text', 'registration_url_team', 'Register — Team (URL)' )
+                ->set_conditional_logic( [ [ 'field' => 'program_structure', 'value' => 'single' ] ] ),
+            Field::make( 'text', 'registration_url_individual', 'Register — Individual (URL)' )
+                ->set_conditional_logic( [ [ 'field' => 'program_structure', 'value' => 'single' ] ] ),
+            Field::make( 'text', 'external_link_label', 'Register — Other (button label)' )
+                ->set_help_text( 'For a program that registers somewhere none of the four above describes. Defaults to "Register".' )
+                ->set_conditional_logic( [ [ 'field' => 'program_structure', 'value' => 'single' ] ] ),
+            Field::make( 'text', 'external_link_url', 'Register — Other (URL)' )
+                ->set_conditional_logic( [ [ 'field' => 'program_structure', 'value' => 'single' ] ] ),
+
+            Field::make( 'separator', 'sep_coaching', 'Coaches' )
+                ->set_conditional_logic( [ [ 'field' => 'program_structure', 'value' => 'single' ] ] ),
+            Field::make( 'checkbox', 'has_coaching', 'Show a Coaches section' )
+                ->set_help_text( 'Appears beside the Register buttons.' )
+                ->set_conditional_logic( [ [ 'field' => 'program_structure', 'value' => 'single' ] ] ),
+            Field::make( 'text', 'coaching_note', 'Note' )
+                ->set_conditional_logic( [
+                    [ 'field' => 'program_structure', 'value' => 'single' ],
+                    [ 'field' => 'has_coaching', 'value' => true ],
+                ] ),
+            Field::make( 'text', 'coaching_contact_label', 'Contact link text' )
+                ->set_help_text( 'e.g. "Email our coaching director"' )
+                ->set_conditional_logic( [
+                    [ 'field' => 'program_structure', 'value' => 'single' ],
+                    [ 'field' => 'has_coaching', 'value' => true ],
+                ] ),
+            Field::make( 'text', 'coaching_contact_href', 'Contact link URL' )
+                ->set_help_text( 'Must start with mailto: for an email address, or https:// for a page. A bare word won\'t work.' )
+                ->set_conditional_logic( [
+                    [ 'field' => 'program_structure', 'value' => 'single' ],
+                    [ 'field' => 'has_coaching', 'value' => true ],
                 ] ),
 
         ] );

@@ -182,6 +182,69 @@ template reads them — a camp renders as a card + modal built from Carbon Field
 and its `camp_type` term description). `thumbnail` came off `program` too: no
 template in this theme renders a featured image.
 
+### Program Details field order and the two selects (2026-08-16)
+The box is ordered **exactly as the page renders**: Key details → Pricing →
+Sessions → Sub-programs → Notes → Financial assistance → Registration → Coaches.
+Registration sits last because it renders last (see "Registration is always
+last"); it used to be second in the box while rendering tenth.
+
+Two `select` fields make the box's either/or choices explicit, with Carbon
+Fields conditional logic hiding whatever doesn't apply:
+
+- **`program_structure`** — `single` | `sub_programs`. Filling in Sub-programs
+  used to *silently* switch off Key details, Pricing, Sessions and Registration
+  in `single-program.php`, with nothing in the admin saying so. Choosing
+  "Several named sub-programs" now hides those groups outright. Notes and
+  Financial assistance stay visible for both, because both render for both.
+- **`pricing_style`** — `none` | `single` | `grade` | `tiers`, selecting between
+  `cost_text`, `costs` and `cost_tiers`. Those three were mutually exclusive
+  with only help text saying so.
+
+**Both were backfilled on all 17 programs.** A blank select would evaluate as
+"no match" and hide every conditional field, so any new program-like content
+created outside the editor must set `program_structure` (default `single`).
+
+`cost_text` now renders **in the Pricing section**, not in Key details. Before,
+a program using it and a program using the tables each produced an `<h2>Cost` in
+a different part of the page; now all three pricing shapes share one heading.
+
+`venue` was relabelled **"Venue"** (was "Venue / Location"). It still renders on
+the page under a "Location" heading, which is worth revisiting — the city comes
+from the `program_location` taxonomy, and two things called Location is the
+confusion this rename was meant to start unpicking.
+
+### Sessions: one scheduling model (consolidated 2026-08-16)
+A Program has exactly one way to say when it meets: the **`sessions`** repeater.
+It replaced four overlapping groups — `schedule_practices` and `schedule_games`
+(each a `complex` capped at one row), `practice_nights`, and the old `sessions`.
+**No program used more than one of them**: they were the same shape truncated at
+different depths, one added per offering as the site grew. All four old meta
+keys were deleted from the database.
+
+Each session row: Name, Start/End date, Cost, a `session_times` repeater
+(Label / Day(s) / Time / Venue / optional Start–End), and Note.
+
+- **Several named sessions** = a program sold in separately-priced blocks. The
+  page renders "Sessions" as a card grid. 9 programs.
+- **One session with a blank Name** = a program that runs straight through a
+  season. The page renders "Schedule" full-width instead. 3 rec leagues.
+
+That heading swap is driven by `$is_single_block` in `single-program.php` and
+exists so consolidating the field groups didn't change either page's wording.
+
+**Meeting-time rows carry the per-grade schedule.** Fall Rec League's six
+`practice_nights` rows became six `session_times` rows labelled by grade, which
+retired its old "Varies by grade — see table below" cross-reference and the
+separate table that pointed at. Its practices venue moved to the program-level
+`venue` field. Venue and dates sit on the *row*, not the session, because
+practices and games genuinely differ on both.
+
+**Sub-programs still have their own nested session shape and were not touched.**
+Unifying it with this one is the obvious follow-up, but its `schedule[]` rows
+store lists of days-of-month ("2/2, 9, 16, 23") that this model can't express.
+
+Snapshot `pre-session-consolidation` holds the pre-migration database.
+
 ### Program dates (converted to real dates 2026-08-16)
 A Program's Key details dates are **`start_date` + `end_date` `date` fields**,
 and the displayed string is derived from them by `nsfc_program_date_range()` /

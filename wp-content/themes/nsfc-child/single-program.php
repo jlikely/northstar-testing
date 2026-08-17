@@ -38,17 +38,13 @@ while ( have_posts() ) :
     $coaching_label      = carbon_get_post_meta( get_the_ID(), 'coaching_contact_label' );
     $coaching_href       = carbon_get_post_meta( get_the_ID(), 'coaching_contact_href' );
 
-    // Schedule
-    $practices = carbon_get_post_meta( get_the_ID(), 'schedule_practices' );
-    $games     = carbon_get_post_meta( get_the_ID(), 'schedule_games' );
-
     // Pricing
     $costs      = carbon_get_post_meta( get_the_ID(), 'costs' );
     $cost_tiers = carbon_get_post_meta( get_the_ID(), 'cost_tiers' );
 
-    // Sessions + practice nights
-    $sessions        = carbon_get_post_meta( get_the_ID(), 'sessions' );
-    $practice_nights = carbon_get_post_meta( get_the_ID(), 'practice_nights' );
+    // Sessions — also carries what used to be Practices, Games and Practice
+    // Nights by Grade, as meeting-time rows. See inc/carbon-fields.php.
+    $sessions = (array) carbon_get_post_meta( get_the_ID(), 'sessions' );
 
     // Sub-programs — when present, these replace Key Details/Pricing/
     // Schedule/Sessions/Registration below with their own stacked sections.
@@ -129,7 +125,7 @@ while ( have_posts() ) :
       <?php endif; ?>
 
       <?php // ── 4. Key program details ──────────────────────────────────────── ?>
-      <?php if ( ! $sub_programs && ( $age_label || $tryout_required || $format || $venue || $date_range || $cost_text ) ) : ?>
+      <?php if ( ! $sub_programs && ( $age_label || $tryout_required || $format || $venue || $date_range ) ) : ?>
       <section class="mb-5">
         <?php if ( $age_label ) : ?>
           <div class="mb-4">
@@ -161,17 +157,20 @@ while ( have_posts() ) :
             <p class="mb-0"><?php echo esc_html( $date_range ); ?></p>
           </div>
         <?php endif; ?>
-        <?php if ( $cost_text ) : ?>
-          <div class="mb-4">
-            <h2 class="h6 fw-semibold mb-1">Cost</h2>
-            <p class="mb-0"><?php echo esc_html( $cost_text ); ?></p>
-          </div>
-        <?php endif; ?>
       </section>
       <?php endif; ?>
 
       <?php // ── 5. Pricing ──────────────────────────────────────────────────── ?>
-      <?php if ( ! $sub_programs && $cost_tiers ) : ?>
+      <?php // `cost_text` used to render up in Key details under its own "Cost"
+            // heading, which meant a program using it and a program using the
+            // tables below both produced an <h2>Cost</h2> in different places.
+            // All three pricing shapes now render here, under one heading. ?>
+      <?php if ( ! $sub_programs && $cost_text && ! $cost_tiers && ! $costs ) : ?>
+      <section class="mb-5">
+        <h2 class="h6 fw-semibold mb-3">Cost</h2>
+        <p class="mb-0"><?php echo esc_html( $cost_text ); ?></p>
+      </section>
+      <?php elseif ( ! $sub_programs && $cost_tiers ) : ?>
       <section class="mb-5">
         <h2 class="h6 fw-semibold mb-3">Cost</h2>
         <div class="row g-3">
@@ -224,90 +223,60 @@ while ( have_posts() ) :
       </section>
       <?php endif; ?>
 
-      <?php // ── 6. Schedule ─────────────────────────────────────────────────── ?>
+      <?php // ── 6. Sessions / Schedule ──────────────────────────────────────── ?>
       <?php
-      $has_practices = ! empty( $practices[0]['day'] );
-      $has_games     = ! empty( $games[0]['day'] );
-      if ( ! $sub_programs && ( $has_practices || $has_games ) ) :
+      // One field group covers both shapes. A program sold in separately-priced
+      // blocks has several named sessions and reads as "Sessions"; a program
+      // that runs straight through a season is a single unnamed session and
+      // reads as "Schedule", which is what the rec leagues were before the
+      // Practices/Games/Practice-nights groups were folded in here.
+      $is_single_block = count( $sessions ) === 1 && empty( $sessions[0]['session_label'] );
+      if ( ! $sub_programs && $sessions ) :
       ?>
       <section class="mb-5">
-        <h2 class="h6 fw-semibold mb-3">Schedule</h2>
-        <?php if ( $has_practices ) :
-              $p = $practices[0]; ?>
-          <div class="mb-4">
-            <h3 class="h6 fw-semibold mb-1">Practices</h3>
-            <p class="mb-0"><?php echo esc_html( $p['day'] ); ?></p>
-            <?php if ( $p['location'] ) : ?>
-              <p class="text-muted mb-0"><?php echo esc_html( $p['location'] ); ?></p>
-            <?php endif; ?>
-            <?php if ( $p['dates'] ) : ?>
-              <p class="text-muted mb-0"><?php echo esc_html( $p['dates'] ); ?></p>
-            <?php endif; ?>
-          </div>
-        <?php endif; ?>
-        <?php if ( $has_games ) :
-              $g = $games[0]; ?>
-          <div class="mb-4">
-            <h3 class="h6 fw-semibold mb-1">Games</h3>
-            <p class="mb-0"><?php echo esc_html( $g['day'] ); ?></p>
-            <?php if ( $g['kickoff'] ) : ?>
-              <p class="text-muted mb-0">Kickoff: <?php echo esc_html( $g['kickoff'] ); ?></p>
-            <?php endif; ?>
-            <?php if ( $g['location'] ) : ?>
-              <p class="text-muted mb-0"><?php echo esc_html( $g['location'] ); ?></p>
-            <?php endif; ?>
-            <?php if ( $g['dates'] ) : ?>
-              <p class="text-muted mb-0"><?php echo esc_html( $g['dates'] ); ?></p>
-            <?php endif; ?>
-          </div>
-        <?php endif; ?>
-      </section>
-      <?php endif; ?>
-
-      <?php // ── Practice nights (appended after structured schedule) ──────────── ?>
-      <?php if ( ! $sub_programs && $practice_nights ) : ?>
-      <section class="mb-5">
-        <h3 class="h6 fw-semibold mb-2">Practice nights</h3>
-        <div class="border rounded-3 overflow-hidden" style="max-width:420px">
-          <table class="table table-sm mb-0">
-            <thead class="table-light">
-              <tr>
-                <th class="fw-normal text-muted small border-0">Grade</th>
-                <th class="fw-normal text-muted small border-0">Nights</th>
-              </tr>
-            </thead>
-            <tbody>
-              <?php foreach ( $practice_nights as $row ) : ?>
-              <tr>
-                <td class="small"><?php echo esc_html( $row['grade'] ); ?></td>
-                <td class="small"><?php echo esc_html( $row['nights'] ); ?></td>
-              </tr>
-              <?php endforeach; ?>
-            </tbody>
-          </table>
-        </div>
-      </section>
-      <?php endif; ?>
-
-      <?php // ── 7. Sessions ─────────────────────────────────────────────────── ?>
-      <?php if ( ! $sub_programs && $sessions ) : ?>
-      <section class="mb-5">
-        <h2 class="h6 fw-semibold mb-3">Sessions</h2>
+        <h2 class="h6 fw-semibold mb-3"><?php echo $is_single_block ? 'Schedule' : 'Sessions'; ?></h2>
         <div class="row g-3">
           <?php foreach ( $sessions as $s ) : ?>
-          <div class="col-sm-6">
+          <?php
+          // Rows saved before a given picker existed have no key for it at all.
+          $session_dates = nsfc_format_date_range( $s['session_start_date'] ?? '', $s['session_end_date'] ?? '' );
+          $times         = $s['session_times'] ?? [];
+          ?>
+          <div class="<?php echo $is_single_block ? 'col-12' : 'col-sm-6'; ?>">
             <div class="border rounded-3 p-3 h-100">
-              <h3 class="h6 fw-semibold mb-2"><?php echo esc_html( $s['session_label'] ); ?></h3>
-              <?php // Rows saved before the date pickers existed have no start/end keys at all. ?>
-              <?php $session_dates = nsfc_format_date_range( $s['session_start_date'] ?? '', $s['session_end_date'] ?? '' ); ?>
+              <?php if ( $s['session_label'] ) : ?>
+                <h3 class="h6 fw-semibold mb-2"><?php echo esc_html( $s['session_label'] ); ?></h3>
+              <?php endif; ?>
               <?php if ( $session_dates ) : ?>
                 <p class="small text-muted mb-1"><?php echo esc_html( $session_dates ); ?></p>
               <?php endif; ?>
               <?php if ( $s['session_cost'] ) : ?>
                 <p class="small fw-medium mb-0"><?php echo esc_html( $s['session_cost'] ); ?></p>
               <?php endif; ?>
+
+              <?php if ( $times ) : ?>
+              <dl class="row small mb-0 mt-2">
+                <?php foreach ( $times as $t ) : ?>
+                <?php
+                $detail = array_filter( [
+                    $t['time'] ?? '',
+                    $t['venue'] ?? '',
+                    nsfc_format_date_range( $t['start_date'] ?? '', $t['end_date'] ?? '' ),
+                ] );
+                ?>
+                <dt class="col-sm-4 fw-semibold"><?php echo esc_html( $t['label'] ); ?></dt>
+                <dd class="col-sm-8 mb-1">
+                  <?php echo esc_html( $t['day'] ); ?>
+                  <?php if ( $detail ) : ?>
+                    <span class="text-muted d-block"><?php echo esc_html( implode( ' · ', $detail ) ); ?></span>
+                  <?php endif; ?>
+                </dd>
+                <?php endforeach; ?>
+              </dl>
+              <?php endif; ?>
+
               <?php if ( $s['session_note'] ) : ?>
-                <p class="small text-muted mb-0"><?php echo esc_html( $s['session_note'] ); ?></p>
+                <p class="small text-muted mb-0 mt-2"><?php echo esc_html( $s['session_note'] ); ?></p>
               <?php endif; ?>
             </div>
           </div>
