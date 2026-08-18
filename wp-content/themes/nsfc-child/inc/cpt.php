@@ -70,6 +70,36 @@ function nsfc_register_cpts() {
         'supports'          => [ 'title' ],
     ] );
 
+    // Age Groups CPT — the central list of age ranges, picked rather than typed.
+    // A CPT for the same reason as venues: an age range has to be selectable on
+    // a sub-program ROW, which a taxonomy cannot do.
+    //
+    // 46 entries had produced 20 different strings across three competing
+    // conventions ("U9-U14", "Ages 5-9", "K-6th grade"), which is exactly what
+    // makes a listing page look untidy and a filter impossible.
+    register_post_type( 'age-group', [
+        'labels' => [
+            'name'               => 'Age Groups',
+            'singular_name'      => 'Age Group',
+            'add_new_item'       => 'Add New Age Group',
+            'edit_item'          => 'Edit Age Group',
+            'search_items'       => 'Search Age Groups',
+            'not_found'          => 'No age groups found.',
+            'not_found_in_trash' => 'No age groups found in trash.',
+        ],
+        'public'            => false,
+        'show_ui'           => true,
+        'show_in_menu'      => true,
+        'show_in_rest'      => false,
+        'has_archive'       => false,
+        'hierarchical'      => false,
+        'menu_icon'         => 'dashicons-groups',
+        'menu_position'     => 27,
+        // page-attributes gives the Order box, so the dropdown can read in a
+        // sensible sequence rather than alphabetically (U13 would sort before U6).
+        'supports'          => [ 'title', 'page-attributes' ],
+    ] );
+
     // Camp Sessions CPT
     register_post_type( 'camp-session', [
         'labels' => [

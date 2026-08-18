@@ -11,7 +11,7 @@ while ( have_posts() ) :
     the_post();
 
     // Carbon Fields meta
-    $age_label           = carbon_get_post_meta( get_the_ID(), 'age_label' );
+    $age_label           = nsfc_age_label( carbon_get_post_meta( get_the_ID(), 'age_label' ) );
     // Derived from the start/end date pickers, or the text override when the
     // real dates aren't pinned down yet — see inc/dates.php.
     $date_range          = nsfc_program_date_range( get_the_ID() );
@@ -320,8 +320,9 @@ while ( have_posts() ) :
         <?php foreach ( $sub_programs as $i => $sp ) : ?>
         <section class="<?php echo $i === 0 ? '' : 'border-top pt-5 '; ?>mb-5">
           <h2 class="h5 fw-semibold mb-1"><?php echo esc_html( $sp['name'] ); ?></h2>
-          <?php if ( $sp['age_label'] ) : ?>
-            <p class="text-muted small mb-4"><?php echo esc_html( $sp['age_label'] ); ?></p>
+          <?php $sp_age = nsfc_age_label( $sp['age_label'] ?? '' ); ?>
+          <?php if ( $sp_age ) : ?>
+            <p class="text-muted small mb-4"><?php echo esc_html( $sp_age ); ?></p>
           <?php endif; ?>
           <?php if ( $sp['description'] ) : ?>
             <p class="mb-4"><?php echo esc_html( $sp['description'] ); ?></p>

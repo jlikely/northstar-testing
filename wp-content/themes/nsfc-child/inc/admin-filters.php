@@ -5,11 +5,15 @@ add_action( 'restrict_manage_posts', 'nsfc_admin_location_filter' );
 add_action( 'pre_get_posts', 'nsfc_admin_location_filter_query' );
 
 /**
- * Post types that get the admin Location filter. Both carry the
+ * Post types that get the admin Location filter. All three carry the
  * `program_location` taxonomy (see nsfc_register_taxonomies()).
+ *
+ * `venue` was added 2026-08-18, when venues became a CPT — a list of venues is
+ * exactly the place you want to narrow to one location, and it was the only one
+ * of the three missing the filter.
  */
 function nsfc_admin_filter_post_types() {
-    return [ 'program', 'camp-session' ];
+    return [ 'program', 'camp-session', 'venue' ];
 }
 
 /**

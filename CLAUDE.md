@@ -643,6 +643,24 @@ callout box, 13/16 programs), `show_financial_aid` (the toggle, 4/16), and
 `Registration`, relabelled "Register — Other". Labels and grouping only; every
 meta key is unchanged, so nothing needed migrating.
 
+### Age Groups (central list, added 2026-08-18)
+Same shape as Venues: an **`age-group` CPT**, picked from a dropdown rather than
+typed. Three fields store an age-group post ID — `program.age_label`,
+`sub_programs[].age_label`, and `camp-session.ages`.
+
+A CPT rather than a taxonomy for the same reason as venues: an age range must be
+selectable on a sub-program *row*. Supports `page-attributes` so the **Order**
+box controls dropdown sequence — alphabetical puts U13 before U6.
+
+`nsfc_age_label()` in `inc/location-data.php` is the single read point;
+`nsfc_age_options()` builds the picker.
+
+**46 entries had produced 20 distinct strings in three competing conventions** —
+`U9–U14`, `Ages 5–9`, `K–6th grade`, plus a bare `All ages`. All 20 were
+migrated 1:1 with **no standardising**, on the user's instruction to keep what's
+there and fix it later. Merging is safe: retitle the one to keep, repoint
+anything using the others, delete the rest.
+
 ### Venues (central list, added 2026-08-17)
 Venue is a **`venue` CPT**, not free text and not a taxonomy. Every field that
 used to hold a venue string now stores a **venue post ID**:

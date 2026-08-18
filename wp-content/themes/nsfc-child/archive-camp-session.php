@@ -58,7 +58,7 @@ $seasons = [
             <tbody>
               <?php while ( $camps->have_posts() ) : $camps->the_post();
                     $date_label      = carbon_get_post_meta( get_the_ID(), 'date_label' );
-                    $ages            = carbon_get_post_meta( get_the_ID(), 'ages' );
+                    $ages            = nsfc_age_label( carbon_get_post_meta( get_the_ID(), 'ages' ) );
                     $session_time    = carbon_get_post_meta( get_the_ID(), 'session_time' );
                     $cost            = carbon_get_post_meta( get_the_ID(), 'cost' );
                     $registration_url = carbon_get_post_meta( get_the_ID(), 'registration_url' );

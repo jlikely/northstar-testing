@@ -81,7 +81,7 @@ while ( $programs->have_posts() ) {
         // this, the program's breadcrumb picks the first season term and can
         // send you "back" to a season you were never on.
         'permalink'  => add_query_arg( 'from', $season_page_id, get_permalink() ),
-        'badge'      => carbon_get_post_meta( get_the_ID(), 'age_label' ),
+        'badge'      => nsfc_age_label( carbon_get_post_meta( get_the_ID(), 'age_label' ) ),
         // The card blurb is its own field in the Program Details box, not the
         // WordPress Excerpt. The excerpt lived in a sidebar panel outside that
         // box, and on any program whose excerpt was auto-derived from the block

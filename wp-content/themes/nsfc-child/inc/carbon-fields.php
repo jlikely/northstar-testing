@@ -58,6 +58,28 @@ function nsfc_venue_options() {
 }
 
 /**
+ * Every age group, as select-field options: post ID => label.
+ *
+ * Ordered by the Order box then title, because alphabetical puts U13 before U6.
+ */
+function nsfc_age_options() {
+    $options = [ '' => '— none —' ];
+
+    $groups = get_posts( [
+        'post_type'      => 'age-group',
+        'posts_per_page' => -1,
+        'post_status'    => 'publish',
+        'orderby'        => [ 'menu_order' => 'ASC', 'title' => 'ASC' ],
+    ] );
+
+    foreach ( $groups as $group ) {
+        $options[ $group->ID ] = $group->post_title;
+    }
+
+    return $options;
+}
+
+/**
  * Financial assistance — site-wide content, edited at Settings → Financial
  * Assistance.
  *
@@ -145,8 +167,9 @@ function nsfc_register_program_fields() {
             // description / dates, and a sub-program page has no single age or
             // date of its own to fall back on — each sub-program carries its
             // own. So on those, these two feed the card and nothing else.
-            Field::make( 'text', 'age_label', 'Age range' )
-                ->set_help_text( 'e.g. "Ages 9–12" or "Grades 3–8". Shown as the badge on this program\'s listing card. On a sub-programs page, give the range across all of them ("Ages 3–5") — the page itself still shows each sub-program\'s own.' ),
+            Field::make( 'select', 'age_label', 'Age range' )
+                ->add_options( 'nsfc_age_options' )
+                ->set_help_text( 'Picked from Age Groups so the wording stays consistent. Shown as the badge on this program\'s listing card. On a sub-programs page, choose the range across all of them — the page itself still shows each sub-program\'s own.' ),
             Field::make( 'date', 'start_date', 'Start date' )
                 ->set_help_text( 'Optional. Leave both dates blank and the listing card works out the span from the sessions below. Fill them in to override that — worth doing on a program tagged to several seasons, where one span reads oddly on some of its season pages.' ),
             Field::make( 'date', 'end_date', 'End date' ),
@@ -264,7 +287,8 @@ function nsfc_register_program_fields() {
                 ->add_fields( [
                     Field::make( 'text', 'name', 'Name' ),
                     Field::make( 'textarea', 'description', 'Description' ),
-                    Field::make( 'text', 'age_label', 'Age range' ),
+                    Field::make( 'select', 'age_label', 'Age range' )
+                        ->add_options( 'nsfc_age_options' ),
                     Field::make( 'complex', 'details', 'Extra details' )
                         ->set_help_text( 'Optional. One row per detail — e.g. "Staff ratio" / "8:1", "Class length" / "45 minutes".' )
                         ->add_fields( [
@@ -384,7 +408,8 @@ function nsfc_register_program_fields() {
             Field::make( 'date', 'end_date', 'End Date' ),
             Field::make( 'select', 'venue', 'Venue' )
                 ->add_options( 'nsfc_venue_options' ),
-            Field::make( 'text', 'ages', 'Ages' ),
+            Field::make( 'select', 'ages', 'Ages' )
+                ->add_options( 'nsfc_age_options' ),
             Field::make( 'text', 'session_time', 'Time' ),
             Field::make( 'text', 'cost', 'Cost' ),
             Field::make( 'text', 'registration_url', 'Registration URL' ),

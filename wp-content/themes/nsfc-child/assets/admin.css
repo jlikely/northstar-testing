@@ -12,6 +12,59 @@
  * only ever enqueued in wp-admin.
  */
 
+/* ── Field text size ──────────────────────────────────────────────────────── */
+
+/*
+ * Carbon Fields' classic build sets almost no font sizes of its own, so the
+ * whole entry area inherits wp-admin: 13px labels and help text, 14px inputs,
+ * 16px selects. Small, and inconsistent with itself.
+ *
+ * One variable drives every field so the size can be changed in one place.
+ * Everything below is a class selector, which beats wp-admin's element-level
+ * `input, textarea { font-size: 14px }` without needing !important.
+ *
+ * Note wp-admin also sets inputs to 16px under `@media (max-width: 782px)` so
+ * iOS doesn't zoom on focus. Raising the base above 16px keeps that behaviour
+ * intact — it just stops being a visible jump.
+ */
+
+:root {
+	--nsfc-field-font-size: 16px;
+}
+
+/* Labels, help text and validation messages */
+.cf-field__label,
+.cf-field__help,
+.cf-field__error {
+	font-size: var(--nsfc-field-font-size);
+	line-height: 1.5;
+}
+
+/* Text-like inputs */
+.cf-text__input,
+.cf-textarea__input,
+.cf-select__input,
+.cf-datetime__input,
+.cf-multiselect__input {
+	font-size: var(--nsfc-field-font-size);
+	line-height: 1.5;
+}
+
+/* Checkbox, radio and set (multi-checkbox) labels */
+.cf-checkbox__label,
+.cf-radio__label,
+.cf-set__label,
+.cf-radio__list-item,
+.cf-set__list-item {
+	font-size: var(--nsfc-field-font-size);
+	line-height: 1.5;
+}
+
+/* The label on a repeater row's black bar */
+.cf-complex__group-title {
+	font-size: var(--nsfc-field-font-size);
+}
+
 /* ── Section headings inside Carbon Fields boxes ──────────────────────────── */
 
 .cf-field.cf-separator {
@@ -44,6 +97,69 @@
    several rows very tall. */
 .cf-container .cf-field:not(.cf-complex__group-body .cf-field) {
 	margin-bottom: 18px;
+}
+
+/* ── "What goes here" panel on the Program editor ─────────────────────────── */
+
+/*
+ * Rendered by nsfc_program_editor_intro() on edit_form_after_title, between the
+ * title field and the meta boxes. Styled as guidance rather than a warning —
+ * a yellow/red admin notice would read as "something is wrong".
+ */
+
+.nsfc-editor-intro {
+	padding: 16px 20px;
+	border: 1px solid #c3c4c7;
+	border-left: 4px solid #000;
+	margin: 16px 0 4px;
+	background-color: #fff;
+}
+
+/*
+ * Sized in px, not rem. wp-admin sets `body` to 13px but leaves `html` alone,
+ * so rem still resolves against the browser root — 1.5rem would be 24px here,
+ * not the 20px it looks like next to admin text.
+ */
+.nsfc-editor-intro__lead {
+	margin: 0 0 12px;
+	font-size: 20px;
+	line-height: 1.45;
+	color: #1d2327;
+}
+
+.nsfc-editor-intro__steps {
+	margin: 0 0 0 22px;
+	padding: 0;
+	font-size: 16px;
+	line-height: 1.6;
+	color: #3c434a;
+}
+
+.nsfc-editor-intro__steps li {
+	margin-bottom: 8px;
+}
+
+.nsfc-editor-intro__steps li:last-child {
+	margin-bottom: 0;
+}
+
+/* Trail to the related admin screens, so it's clear where each thing is edited. */
+.nsfc-editor-intro__links {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px 20px;
+	padding-top: 12px;
+	border-top: 1px solid #dcdcde;
+	margin: 14px 0 0;
+	font-size: 15px;
+}
+
+.nsfc-editor-intro__links a {
+	text-decoration: none;
+}
+
+.nsfc-editor-intro__links a::after {
+	content: " \2192";
 }
 
 /* ── Repeater rows ────────────────────────────────────────────────────────── */

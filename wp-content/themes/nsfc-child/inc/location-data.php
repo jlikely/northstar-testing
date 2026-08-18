@@ -80,3 +80,24 @@ function nsfc_venue_name( $venue_id ) {
 
     return $venue ? $venue['name'] : '';
 }
+
+/**
+ * An age group's label, from an age-group post ID.
+ *
+ * Age fields store an ID and every template reads through here, the same
+ * arrangement as nsfc_venue_name(). Returns '' for an empty or dangling
+ * reference so callers can just skip it.
+ */
+function nsfc_age_label( $age_id ) {
+    $age_id = absint( $age_id );
+    if ( ! $age_id ) {
+        return '';
+    }
+
+    $age = get_post( $age_id );
+    if ( ! $age || 'age-group' !== $age->post_type || 'publish' !== $age->post_status ) {
+        return '';
+    }
+
+    return get_the_title( $age_id );
+}

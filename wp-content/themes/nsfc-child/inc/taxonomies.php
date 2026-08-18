@@ -28,6 +28,9 @@ function nsfc_register_taxonomies() {
         'public'       => true,
         'hierarchical' => true,
         'show_in_rest' => true,
+        // Checkboxes only — no inline "Add New" form. See
+        // nsfc_taxonomy_checkbox_meta_box() in inc/admin-ui.php.
+        'meta_box_cb'  => 'nsfc_taxonomy_checkbox_meta_box',
         'rewrite'      => [ 'slug' => 'season' ],
     ] );
 
@@ -44,6 +47,9 @@ function nsfc_register_taxonomies() {
         'public'       => true,
         'hierarchical' => true,
         'show_in_rest' => true,
+        // Checkboxes only — no inline "Add New" form. See
+        // nsfc_taxonomy_checkbox_meta_box() in inc/admin-ui.php.
+        'meta_box_cb'  => 'nsfc_taxonomy_checkbox_meta_box',
         'rewrite'      => [ 'slug' => 'level' ],
     ] );
 
@@ -61,6 +67,9 @@ function nsfc_register_taxonomies() {
         'public'       => true,
         'hierarchical' => true,
         'show_in_rest' => true,
+        // Checkboxes only — no inline "Add New" form. See
+        // nsfc_taxonomy_checkbox_meta_box() in inc/admin-ui.php.
+        'meta_box_cb'  => 'nsfc_taxonomy_checkbox_meta_box',
         'rewrite'      => [ 'slug' => 'location' ],
     ] );
 
@@ -81,6 +90,9 @@ function nsfc_register_taxonomies() {
         'public'       => true,
         'hierarchical' => true,
         'show_in_rest' => true,
+        // Checkboxes only — no inline "Add New" form. See
+        // nsfc_taxonomy_checkbox_meta_box() in inc/admin-ui.php.
+        'meta_box_cb'  => 'nsfc_taxonomy_checkbox_meta_box',
         'rewrite'      => [ 'slug' => 'camp-type' ],
     ] );
 }
