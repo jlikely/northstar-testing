@@ -25,6 +25,11 @@ function nsfc_register_venue_fields() {
                 ->set_help_text( 'Street address. Leave blank until you have it — the venue still works without one.' ),
             Field::make( 'text', 'nsfc_venue_map_url', 'Google Maps link' )
                 ->set_help_text( 'Paste the share link from Google Maps. Shown as a "Directions" link wherever this venue appears.' ),
+            Field::make( 'textarea', 'nsfc_venue_description', 'Description' )
+                ->set_help_text( 'Optional. Parking, which entrance to use, where the fields are — anything a family arriving for the first time would want to know.' ),
+            Field::make( 'media_gallery', 'nsfc_venue_images', 'Maps and photos' )
+                ->set_type( [ 'image' ] )
+                ->set_help_text( 'Optional. Field maps, parking diagrams, photos. Shown as thumbnails with a button that opens them larger.' ),
         ] );
 }
 
@@ -181,9 +186,14 @@ function nsfc_register_program_fields() {
             // Was "Venue / Location", which rendered on the page as "Location"
             // and read as if it meant the city — the job of the program_location
             // taxonomy. This is the pitch or building.
-            Field::make( 'select', 'venue', 'Venue' )
+            // Multiselect, not select: a program tagged to more than one location
+            // is genuinely held at more than one venue. Row-level venues below
+            // (a session's meeting times, a sub-program session) stay single —
+            // one meeting happens in one place, and the rows already give
+            // per-time granularity.
+            Field::make( 'multiselect', 'venue', 'Venue(s)' )
                 ->add_options( 'nsfc_venue_options' )
-                ->set_help_text( 'Picked from Venues so the name and address stay consistent everywhere. Add a missing one under Venues first. The city is set separately, in the Location box.' )
+                ->set_help_text( 'Picked from Venues so names stay consistent. Choose more than one if the program runs at several — each is shown with its own map and directions. Add a missing venue under Venues first. The city is set separately, in the Location box.' )
                 ->set_conditional_logic( [ [ 'field' => 'program_structure', 'value' => 'single' ] ] ),
 
             Field::make( 'separator', 'sep_pricing', 'Pricing' )
@@ -406,8 +416,9 @@ function nsfc_register_program_fields() {
                 ->set_help_text( 'e.g. "Jun 8–11"' ),
             Field::make( 'date', 'start_date', 'Start Date' ),
             Field::make( 'date', 'end_date', 'End Date' ),
-            Field::make( 'select', 'venue', 'Venue' )
-                ->add_options( 'nsfc_venue_options' ),
+            Field::make( 'multiselect', 'venue', 'Venue(s)' )
+                ->add_options( 'nsfc_venue_options' )
+                ->set_help_text( 'Choose more than one if the camp runs at several venues.' ),
             Field::make( 'select', 'ages', 'Ages' )
                 ->add_options( 'nsfc_age_options' ),
             Field::make( 'text', 'session_time', 'Time' ),

@@ -17,8 +17,9 @@ while ( have_posts() ) :
     $date_range          = nsfc_program_date_range( get_the_ID() );
     $tryout_required     = carbon_get_post_meta( get_the_ID(), 'tryout_required' );
     $format              = carbon_get_post_meta( get_the_ID(), 'format' );
-    // Venue fields hold a venue post ID; nsfc_venue() resolves name/address/map.
-    $venue               = nsfc_venue( carbon_get_post_meta( get_the_ID(), 'venue' ) );
+    // `venue` is a multiselect — an array of venue post IDs. Kept as IDs here;
+    // nsfc_venue_block() resolves and renders each one.
+    $venue_ids           = array_filter( (array) carbon_get_post_meta( get_the_ID(), 'venue' ) );
     $cost_text           = carbon_get_post_meta( get_the_ID(), 'cost_text' );
     $notes               = carbon_get_post_meta( get_the_ID(), 'notes' );
     $show_financial_aid  = carbon_get_post_meta( get_the_ID(), 'show_financial_aid' );
@@ -149,7 +150,7 @@ while ( have_posts() ) :
       <?php endif; ?>
 
       <?php // ── 4. Key program details ──────────────────────────────────────── ?>
-      <?php if ( ! $sub_programs && ( $age_label || $tryout_required || $format || $venue || $date_range ) ) : ?>
+      <?php if ( ! $sub_programs && ( $age_label || $tryout_required || $format || $venue_ids || $date_range ) ) : ?>
       <section class="mb-5">
         <?php if ( $age_label ) : ?>
           <div class="mb-4">
@@ -169,16 +170,17 @@ while ( have_posts() ) :
             <p class="mb-0"><?php echo esc_html( $format ); ?></p>
           </div>
         <?php endif; ?>
-        <?php if ( $venue ) : ?>
+        <?php if ( $venue_ids ) : ?>
           <div class="mb-4">
-            <h2 class="h6 fw-semibold mb-1">Venue</h2>
-            <p class="mb-0"><?php echo esc_html( $venue['name'] ); ?></p>
-            <?php if ( $venue['address'] ) : ?>
-              <p class="small text-muted mb-0"><?php echo esc_html( $venue['address'] ); ?></p>
-            <?php endif; ?>
-            <?php if ( $venue['map_url'] ) : ?>
-              <p class="small mb-0"><a href="<?php echo esc_url( $venue['map_url'] ); ?>" target="_blank" rel="noopener noreferrer">Directions &rarr;</a></p>
-            <?php endif; ?>
+            <h2 class="h6 fw-semibold mb-1"><?php echo count( $venue_ids ) === 1 ? 'Venue' : 'Venues'; ?></h2>
+            <?php // Name, address, description, Directions link and the maps
+                  // modal — see nsfc_venue_block() in inc/location-data.php.
+                  // One block per venue; a program can run at several. ?>
+            <?php foreach ( $venue_ids as $i => $venue_id ) : ?>
+              <div class="<?php echo $i ? 'mt-3 pt-3 border-top' : ''; ?>">
+                <?php nsfc_venue_block( $venue_id ); ?>
+              </div>
+            <?php endforeach; ?>
           </div>
         <?php endif; ?>
         <?php if ( $date_range ) : ?>

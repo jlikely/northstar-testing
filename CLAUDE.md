@@ -814,9 +814,35 @@ times, a sub-program's session), and a taxonomy can only attach to a whole post.
 
 Each venue carries its `program_location` term (so each location owns its
 venues, and `program_location` stays the single source of truth), plus
-`nsfc_venue_address` and `nsfc_venue_map_url`. Both may be blank; the venue
-still works. When a map URL is set, the program page renders a "Directions"
-link — something a plain string could never do.
+`nsfc_venue_address`, `nsfc_venue_map_url`, `nsfc_venue_description` and
+`nsfc_venue_images` (a `media_gallery`). **All four are optional** — a venue
+with only a name still works everywhere.
+
+`nsfc_venue_block()` in `inc/location-data.php` renders the full thing on the
+program page's Key details: name, address, description, a "Directions" link when
+a map URL is set, and a **"View maps & photos"** button opening a Bootstrap
+modal when images are attached. The modal is `data-bs-toggle="modal"`, the same
+mechanism as the camp detail modals and every registration dropdown, so it needs
+no custom JavaScript. Images use `row row-cols-1 row-cols-md-3 g-3` — three
+across from `md`, stacked below — so no custom front-end CSS either.
+
+Inline mentions (a session's meeting times, a camp card) stay as just the name
+via `nsfc_venue_name()` / `nsfc_venue_names()`. Repeating the full block per row
+would drown the page, and a modal inside the camp modal wouldn't work anyway.
+
+**`program.venue` and `camp-session.venue` are `multiselect`** (2026-08-18) — a
+program tagged to more than one location is genuinely held at more than one
+venue, and the Key details heading pluralises to "Venues" with one block each.
+The row-level venues (`sessions[].session_times[].venue`,
+`sub_programs[].sessions[].venue`) stay single: one meeting happens in one
+place, and the rows already give per-time granularity.
+
+Multiselect stores `Value_Set::TYPE_MULTIPLE_VALUES`, i.e. `_venue|0|value`
+rows rather than a single `_venue` row. The 39 existing values were captured
+from raw meta *before* the field type changed, then rewritten as arrays. **Watch
+for leftover empty `_venue` rows**: Carbon Fields reads one as `['']`, a truthy
+array containing nothing, so `if ( $venue )` passes while the venue is blank.
+Callers should `array_filter()` before testing.
 
 Templates never read the raw meta. `nsfc_venue()` / `nsfc_venue_name()` in
 `inc/location-data.php` resolve an ID to name/address/map and return null for a
