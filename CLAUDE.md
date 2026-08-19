@@ -87,12 +87,15 @@ northstar-testing/              ← repo root + DDEV project root (this director
 │           │   ├── cpt.php             ← CPT registration
 │           │   ├── taxonomies.php      ← Taxonomy registration
 │           │   ├── carbon-fields.php   ← Field group definitions
-│           │   ├── location-data.php   ← Shared location-hub card copy (see "Location Hub pages")
-│           │   ├── admin-filters.php   ← Location filter on the Programs/Camp Sessions list tables
-│           │   ├── admin-ui.php        ← assets/admin.css enqueue + hides inline term creation
+│           │   ├── location-data.php   ← Location-hub card copy + nsfc_venue()/nsfc_age_label()
+│           │   ├── admin-filters.php   ← Location + Level filters on the list tables
+│           │   ├── admin-ui.php        ← All wp-admin behaviour: menu layout, guidance
+│           │   │                          panels, term-list columns, checkbox-only
+│           │   │                          taxonomy boxes, admin.css enqueue
 │           │   └── breadcrumbs.php     ← nsfc_breadcrumb() — native trail, no plugin
 │           ├── assets/
-│           │   └── admin.css           ← wp-admin only: Carbon Fields section headings
+│           │   └── admin.css           ← wp-admin only: field sizing, section headings,
+│           │                              repeater rows, guidance panels
 │           ├── single-program.php      ← Program detail template
 │           ├── archive-camp-session.php ← Orphaned Camp listing template (unlinked, left alone)
 │           └── page-templates/
@@ -115,49 +118,186 @@ northstar-testing/              ← repo root + DDEV project root (this director
 - **Bootstrap version:** 5 — CSS *and* the JS bundle are enqueued in `functions.php` from the jsDelivr CDN (not supplied by Kadence). Modals and dropdowns depend on the bundle.
 
 ### CPTs and taxonomies
-| CPT slug | Label |
-|---|---|
-| `program` | Programs |
-| `camp-session` | Camp Sessions |
+| CPT slug | Label | Notes |
+|---|---|---|
+| `program` | Programs | content |
+| `camp-session` | Camp Sessions | content |
+| `venue` | Venues | reference list, `public => false` |
+| `age-group` | Age Groups | reference list, `public => false` |
 
-All four are registered `hierarchical => true` — not because any of them nest,
-but because that is what makes the block editor render a **checkbox list**
-instead of a free-text token field. A flat taxonomy's token field creates a new
-term from whatever you type, which is how three locations originally got
-slug-style names. The flag only affects the editing UI; stored terms and
-assignments are untouched by it.
+All four taxonomies are registered `hierarchical => true` — not because any of
+them nest, but because that is what makes a **checkbox list** rather than a
+free-text token field. A flat taxonomy's token field creates a new term from
+whatever you type, which is how three locations originally got slug-style
+names. The flag only affects the editing UI; stored terms and assignments are
+untouched by it.
 
-**Terms are created on the taxonomy admin screens only** (Programs → Locations,
-Camp Sessions → Camp Types, etc.). `nsfc_hide_inline_term_creation()` in
-`inc/admin-ui.php` strips the block editor's inline "Add New …" form from all
-four taxonomy panels on `program` and `camp-session` posts — the assignment
-checkboxes are untouched. Two reasons: the inline form has no Slug field
-(auto-slugging a typed name is the same failure mode the `hierarchical` flag
-above was meant to close), and creating a location is only step 1 of 4 in
-`documentation/adding-a-location.md` — a term made inline shows up in every
-location dropdown and admin filter site-wide with no Location Hub page behind
-it. It works by removing the post's `wp:action-create-{taxonomy}` REST link,
-not by changing capabilities, so the term screens stay fully usable.
+**All four taxonomies are `public => false`, `publicly_queryable => false`,
+`rewrite => false`** (2026-08-18). They were originally `public => true` with
+rewrite slugs, which gave every term a real front-end archive: `/location/
+rochester/` returned 200 and rendered a Kadence archive titled "Rochester",
+competing with the actual hub at `/youth-soccer/rochester/`. No template ever
+existed for them and nothing in the theme links to them. Those URLs now 301 to
+sensible destinations. It also retired the misleading "View" row action on every
+term.
 
-**Parent and Description are hidden on those four term screens** — the CSS
-rules in `assets/admin.css`, plus `nsfc_hide_term_description_column()` for the
+**Knock-on:** WordPress forces `query_var` to false for non-public taxonomies
+(`WP_Taxonomy`, "Force 'query_var' to false"), so
+`edit.php?post_type=program&season=fall` is no longer parsed by core.
+`nsfc_admin_location_filter_query()` in `inc/admin-filters.php` handles all four
+explicitly instead — without it the admin filters and the term-screen drill-down
+links would silently return unfiltered lists.
+
+**Terms are created on the taxonomy admin screens only.**
+`nsfc_taxonomy_checkbox_meta_box()` in `inc/admin-ui.php` is the `meta_box_cb`
+for all four, rendering just `wp_terms_checklist()` — no "Add New" form, no
+All/Most Used tabs. It includes a hidden `value="0"` input; without it,
+unticking every box saves nothing and the old terms silently persist.
+
+`nsfc_hide_inline_term_creation()` does the same job for the block editor by
+removing the post's `wp:action-create-{taxonomy}` REST link. **It is currently
+inert** — Programs and Camp Sessions dropped `editor` support, so they use the
+classic editor and never load the block editor's term panel. Kept because it
+costs nothing and would matter again if either CPT regained `editor`.
+
+Why bother: the inline form has no Slug field (auto-slugging a typed name is the
+same failure mode the `hierarchical` flag was meant to close), and creating a
+location is only step 1 of several — a term made inline shows up in every
+location dropdown and admin filter site-wide with no Location Hub page behind it.
+
+**Parent and Description are hidden on those four term screens** — CSS in
+`assets/admin.css`, plus `nsfc_hide_term_description_column()` for the
 list-table column. Core renders Parent on anything hierarchical, but none of
 these nest and setting a parent would indent the term inside another one in
 every checkbox list. Term descriptions are read by nothing in the theme (a
 location's intro copy is on its Location Hub page; a camp type's description is
 the Carbon Fields term-meta box on the same screen), so core's field was a
 second, identically-named box whose text went nowhere. Both are scoped by
-taxonomy — post categories use the same markup and need both fields. **Name and
-Slug are what's left, and Slug is load-bearing:** page meta (`_nsfc_location`,
-`_nsfc_season`, `_nsfc_level`) stores the slug, so renaming a slug silently
-detaches every page pointing at it. Names are safe to edit; slugs are not.
+taxonomy — post categories use the same markup and need both fields.
 
-| Taxonomy slug | Label | Terms |
-|---|---|---|
-| `season` | Season | `spring-summer`, `fall`, `winter` |
-| `program_level` | Level | `competitive`, `recreational` |
-| `program_location` | Location | `rochester`, `austin`, `albert-lea`, `winona` |
-| `camp_type` | Camp Type | 13 terms (see "Camps pages" below) — `camp-session` only |
+**Name and Slug are what's left, and Slug is load-bearing:** page meta
+(`_nsfc_location`, `_nsfc_season`, `_nsfc_level`) stores the slug, so renaming a
+slug silently detaches every page pointing at it. Names are safe to edit; slugs
+are not.
+
+| Taxonomy slug | Label | Attached to | Terms |
+|---|---|---|---|
+| `season` | Season | program, camp-session | `spring-summer`, `fall`, `winter` |
+| `program_level` | Level | program, camp-session | `competitive`, `recreational` |
+| `program_location` | Location | program, camp-session, **venue** | `rochester`, `austin`, `albert-lea`, `winona` |
+| `camp_type` | Camp Type | camp-session | 13 terms (see "Camps pages" below) |
+
+### Admin menu layout (restructured 2026-08-18)
+Two content types, then a separator, then the six lists they draw values from:
+
+```
+Programs         26        ← content you author
+Camp Sessions    27
+─────────────    28        ← separator inserted by nsfc_register_taxonomy_menus()
+Locations        29        ← field-management lists
+Venues           30
+Age Groups       31
+Seasons          32
+Levels           33
+Camp Types       34
+```
+
+Positions start at 26 because core puts Comments at 25. **All four taxonomies
+are `show_in_menu => false`** and get a hand-registered top-level item instead
+(`nsfc_taxonomy_menu_items()` / `nsfc_register_taxonomy_menus()` in
+`inc/admin-ui.php`). Core adds a taxonomy submenu under *every* post type it's
+attached to, so left alone Locations appeared **three** times (Programs, Camp
+Sessions, Venues) and Seasons and Levels twice each — several routes to one
+list.
+
+`nsfc_highlight_taxonomy_menu()` (a `parent_file` filter) keeps the right item
+lit on those screens; without it core infers the parent from the taxonomy's
+first post type and highlights Programs instead. Adding a seventh list means one
+entry in `nsfc_taxonomy_menu_items()` — both the menu and the highlighting read
+from it.
+
+### Term list tables (2026-08-18)
+Core's **Count** column is replaced on all four taxonomy screens:
+
+- **Used by** — per-post-type counts, each linking to a filtered list.
+  `program_location` covers three post types, so core's single number was
+  `52` (16 programs + 28 camps + 8 venues) linked to `post_type=post`, which is
+  empty. Since Locations moved to a top-level menu its screen carries no
+  `post_type` at all, so core fell back to `post`.
+- **Locations** — which locations actually have content carrying that term
+  (e.g. `Competitive → Rochester 29 · Albert Lea 1`). Not shown on the Locations
+  screen, where the answer would always be the term's own name. Counts are
+  combined across post types and therefore deliberately **not** links — one
+  number spanning Programs and Camp Sessions can't link honestly to either.
+
+That second column answers "which locations offer Competitive?" **from the
+content**. It is a different question from the Location Hub pages' "Program
+offerings" checkboxes, which are what a location *claims* to offer — all four
+locations currently tick all four boxes while only Rochester has content behind
+them. Keeping both visible is the point.
+
+Use `fields => all_with_object_id` when tallying terms across posts.
+`wp_get_object_terms()` returns each term **once** regardless of how many posts
+carry it, which silently renders every count as 1.
+
+### Admin list filters
+`inc/admin-filters.php` renders a dropdown per taxonomy in
+`nsfc_admin_filter_taxonomies()` — currently **Location and Level** — for each
+post type in `nsfc_admin_filter_post_types()` (`program`, `camp-session`,
+`venue`). A dropdown only renders for post types the taxonomy is attached to, so
+Venues shows Location alone.
+
+The query side already handles all four taxonomies and combines them with `AND`,
+so adding Season or Camp Type is one entry in the render list. Deliberately left
+off for now — four dropdowns crowd the toolbar.
+
+### Admin guidance panels
+`nsfc_editor_intros()` in `inc/admin-ui.php` holds the "what goes here" copy for
+Programs, Camp Sessions, Venues, Age Groups, Locations and Camp Types, rendered
+by `edit_form_after_title` (post screens) and `{$taxonomy}_pre_add_form` (term
+screens). All copy lives in that one array.
+
+Each panel answers what the screen itself cannot: which of the similar-looking
+things it's for, and which sidebar terms are required — a program or camp
+missing one is filtered out of every listing page with nothing on screen to say
+why. Panels carry links to the related admin areas so there's a trail between
+them.
+
+`edit_form_after_title` only fires on the **classic** editor. It works because
+none of these CPTs declare `editor` support; if one ever regains it, its panel
+silently stops appearing.
+
+### Admin styling (`assets/admin.css`)
+Front-end CSS is Kadence + Bootstrap only (see "What NOT to do"). `admin.css` is
+the documented exception — Kadence and Bootstrap don't style Carbon Fields at
+all, and the classic build sets almost no styling of its own.
+
+**Enqueued on `admin_print_footer_scripts` at priority 10, not
+`admin_enqueue_scripts`, and that is load-bearing.** Carbon Fields enqueues its
+own CSS from that hook at priority 9 — i.e. in the *footer*. Anything enqueued
+the normal way prints in the `<head>` and loses at equal specificity no matter
+what priority it has, since both style `.cf-complex__group-head` as a single
+class. Running at priority 10 on the same hook avoids `!important` everywhere.
+Versioned by `filemtime()` so edits aren't hidden behind a stale cache.
+
+What it does:
+
+- **Field text size** — one `--nsfc-field-font-size` custom property (currently
+  `16px`) drives labels, help text, inputs, textareas, selects, date pickers and
+  checkbox/radio labels. Change that one value to resize the whole entry area.
+  Carbon Fields' classic build sets no font sizes, so wp-admin's defaults gave
+  13px labels against 16px selects.
+- **Section separators** — black bars, white 24px text.
+- **Repeater rows** — black header with a white number and a heavy top rule, so
+  it's visible where one row ends and the next begins. Nested repeaters get a
+  lighter bar so three levels of nesting don't read as a wall.
+- **Hierarchical row numbers** — `2.1`, `1.2.3` rather than restarting at 1 at
+  every depth, via **CSS counters**, not JavaScript: Carbon Fields adds, removes
+  and drags rows through React, and counters renumber themselves on any DOM
+  change. The `:not()` clauses pin each rule to one nesting depth — without
+  them a nested row also matches the top-level selector and corrupts its count.
+- **Guidance panels** — styling for `nsfc_editor_intros()`.
+- **Parent and Description hidden** on the four term screens.
 
 ### Carbon Fields meta keys
 All program fields are stored with the prefix `_` (Carbon Fields default). Access in templates with `carbon_get_post_meta('field_name')`.
@@ -854,7 +994,8 @@ default for any plugin that behaves this way.
 - Do not install new plugins without checking the build plan first
 - Do not create custom CSS beyond what Kadence and Bootstrap 5 provide.
   **This rule is about the front end.** `assets/admin.css` is wp-admin-only
-  (enqueued by `inc/admin-ui.php` on editor screens only) and is exempt —
+  (enqueued by `inc/admin-ui.php` on editor, term and options screens) and is
+  exempt —
   Kadence and Bootstrap don't style the Carbon Fields meta boxes at all.
 - Do not use `xl` or `xxl` Bootstrap breakpoints, or introduce new `lg` ones — only `sm` and `md` (the existing `col-lg-*` page shells are the documented exception)
 - Do not skip heading levels

@@ -7,6 +7,26 @@ function nsfc_register_taxonomies() {
 
     $post_types = [ 'program', 'camp-session' ];
 
+    // All four get `show_in_menu => false` and a top-level menu item registered
+    // by hand in inc/admin-ui.php. Core adds a taxonomy submenu under EVERY post
+    // type it's attached to (wp-admin/menu.php), so Locations appeared three
+    // times (Programs, Camp Sessions, Venues) and Seasons and Levels twice each.
+    // They now sit alongside Venues and Age Groups as what they actually are:
+    // the field-management lists that Programs and Camp Sessions draw from,
+    // rather than properties of either one.
+    //
+    // None of the four is publicly queryable and none has a rewrite. They were
+    // registered `public => true` with rewrite slugs, which gave every term a
+    // real front-end archive: /location/rochester/ returned 200 and rendered a
+    // Kadence archive titled "Rochester", competing with the actual location hub
+    // at /youth-soccer/rochester/. No template ever existed for them and nothing
+    // in the theme links to them — they were an accident of registration. It
+    // also put a "View" row action on every term pointing at that page.
+    //
+    // show_ui is set explicitly because it defaults to `public`, and query_var
+    // is kept so the admin list-table filters (edit.php?post_type=x&taxonomy=y)
+    // still work.
+    //
     // All four taxonomies are registered hierarchical so the block editor
     // renders a checkbox list (HierarchicalTermSelector) rather than the
     // free-text token field it uses for flat taxonomies. None of them
@@ -25,13 +45,17 @@ function nsfc_register_taxonomies() {
             'edit_item'     => 'Edit Season',
             'add_new_item'  => 'Add New Season',
         ],
-        'public'       => true,
+        'public'             => false,
+        'publicly_queryable' => false,
+        'show_ui'            => true,
+        'show_in_menu'       => false,
+        'query_var'          => true,
         'hierarchical' => true,
         'show_in_rest' => true,
         // Checkboxes only — no inline "Add New" form. See
         // nsfc_taxonomy_checkbox_meta_box() in inc/admin-ui.php.
         'meta_box_cb'  => 'nsfc_taxonomy_checkbox_meta_box',
-        'rewrite'      => [ 'slug' => 'season' ],
+        'rewrite'            => false,
     ] );
 
     // Program Level (competitive / recreational)
@@ -44,17 +68,22 @@ function nsfc_register_taxonomies() {
             'edit_item'     => 'Edit Level',
             'add_new_item'  => 'Add New Level',
         ],
-        'public'       => true,
+        'public'             => false,
+        'publicly_queryable' => false,
+        'show_ui'            => true,
+        'show_in_menu'       => false,
+        'query_var'          => true,
         'hierarchical' => true,
         'show_in_rest' => true,
         // Checkboxes only — no inline "Add New" form. See
         // nsfc_taxonomy_checkbox_meta_box() in inc/admin-ui.php.
         'meta_box_cb'  => 'nsfc_taxonomy_checkbox_meta_box',
-        'rewrite'      => [ 'slug' => 'level' ],
+        'rewrite'            => false,
     ] );
 
     // Location — also attached to `venue`, so each location owns its venues and
     // program_location stays the single source of truth for which locations exist.
+    //
     register_taxonomy( 'program_location', array_merge( $post_types, [ 'venue' ] ), [
         'labels' => [
             'name'          => 'Locations',
@@ -64,13 +93,17 @@ function nsfc_register_taxonomies() {
             'edit_item'     => 'Edit Location',
             'add_new_item'  => 'Add New Location',
         ],
-        'public'       => true,
+        'public'             => false,
+        'publicly_queryable' => false,
+        'show_ui'            => true,
+        'query_var'          => true,
         'hierarchical' => true,
         'show_in_rest' => true,
+        'show_in_menu' => false,
         // Checkboxes only — no inline "Add New" form. See
         // nsfc_taxonomy_checkbox_meta_box() in inc/admin-ui.php.
         'meta_box_cb'  => 'nsfc_taxonomy_checkbox_meta_box',
-        'rewrite'      => [ 'slug' => 'location' ],
+        'rewrite'            => false,
     ] );
 
     // Camp Type — camp-session only. Was a fixed Select field; converted to
@@ -87,13 +120,17 @@ function nsfc_register_taxonomies() {
             'edit_item'     => 'Edit Camp Type',
             'add_new_item'  => 'Add New Camp Type',
         ],
-        'public'       => true,
+        'public'             => false,
+        'publicly_queryable' => false,
+        'show_ui'            => true,
+        'show_in_menu'       => false,
+        'query_var'          => true,
         'hierarchical' => true,
         'show_in_rest' => true,
         // Checkboxes only — no inline "Add New" form. See
         // nsfc_taxonomy_checkbox_meta_box() in inc/admin-ui.php.
         'meta_box_cb'  => 'nsfc_taxonomy_checkbox_meta_box',
-        'rewrite'      => [ 'slug' => 'camp-type' ],
+        'rewrite'            => false,
     ] );
 }
 

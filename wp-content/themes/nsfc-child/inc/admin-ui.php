@@ -211,14 +211,26 @@ function nsfc_editor_intros() {
             ],
         ],
         'program_location' => [
-            'lead'  => '<strong>Adding a location here is the first step, not the only one.</strong> The location won&rsquo;t appear on the site until its pages exist.',
+            'lead'  => sprintf(
+                '<strong>Locations are what you tag <a href="%s">Programs</a> and <a href="%s">Camp Sessions</a> with</strong>, so each one appears on the right pages. Adding a location here is the first step &mdash; it won&rsquo;t show on the site until its pages exist.',
+                esc_url( $programs ),
+                esc_url( $camps )
+            ),
             'steps' => [
                 'Add the location below with a name and a slug (the short, lower-case version with dashes instead of spaces).',
-                'Then create its pages: a Location Hub, plus Competitive, Recreational and Camps beneath it.',
-                'The full walkthrough is in <code>documentation/adding-a-location.md</code>.',
+                sprintf(
+                    'Then create its <a href="%s">pages</a>: a Location Hub, plus Competitive, Recreational and Camps beneath it.',
+                    esc_url( $pages )
+                ),
             ],
+            // Programs, Camp Sessions and Venues only — the three post types the
+            // taxonomy is actually attached to. Pages reference a location too,
+            // but through the `_nsfc_location` Carbon Fields slug rather than a
+            // term, so listing them here would imply a tagging relationship that
+            // doesn't exist. The page-creation step links to Pages instead.
             'links' => [
-                [ 'Pages', $pages ],
+                [ 'Programs', $programs ],
+                [ 'Camp Sessions', $camps ],
                 [ 'Venues', $venues ],
             ],
         ],
@@ -339,4 +351,229 @@ function nsfc_taxonomy_checkbox_meta_box( $post, $box ) {
         </div>
     </div>
     <?php
+}
+
+add_action( 'admin_menu', 'nsfc_register_taxonomy_menus' );
+add_filter( 'parent_file', 'nsfc_highlight_taxonomy_menu' );
+
+/**
+ * Top-level menu items for the four taxonomies, and the ordering for the whole
+ * North Star group.
+ *
+ * All four are registered `show_in_menu => false` (inc/taxonomies.php) because
+ * core adds a taxonomy submenu under every post type it's attached to: Locations
+ * appeared three times, Seasons and Levels twice each. They belong beside Venues
+ * and Age Groups instead — the lists Programs and Camp Sessions draw their field
+ * values from, rather than properties of either.
+ *
+ * Positions run from 26 because core puts Comments at 25; a separator at 28
+ * splits the two content types from the six lists they use.
+ */
+function nsfc_taxonomy_menu_items() {
+    return [
+        'program_location' => [ 'icon' => 'dashicons-location-alt', 'position' => 29 ],
+        'season'           => [ 'icon' => 'dashicons-calendar',     'position' => 32 ],
+        'program_level'    => [ 'icon' => 'dashicons-sort',         'position' => 33 ],
+        'camp_type'        => [ 'icon' => 'dashicons-tag',          'position' => 34 ],
+    ];
+}
+
+function nsfc_register_taxonomy_menus() {
+    foreach ( nsfc_taxonomy_menu_items() as $taxonomy => $args ) {
+        $tax = get_taxonomy( $taxonomy );
+        if ( ! $tax ) {
+            continue;
+        }
+
+        add_menu_page(
+            $tax->labels->name,
+            $tax->labels->name,
+            $tax->cap->manage_terms,
+            'edit-tags.php?taxonomy=' . $taxonomy,
+            '',
+            $args['icon'],
+            $args['position']
+        );
+    }
+
+    // Visual break between "things you author" and "lists they draw from".
+    global $menu;
+    $menu[28] = [ '', 'read', 'nsfc-separator', '', 'wp-menu-separator' ];
+    ksort( $menu );
+}
+
+/**
+ * Keep the right top-level item lit while its term screens are open.
+ *
+ * Without this, core works the parent out from the taxonomy's first post type
+ * and highlights Programs instead — so editing a season would look like being
+ * somewhere else entirely.
+ */
+function nsfc_highlight_taxonomy_menu( $parent_file ) {
+    $screen   = get_current_screen();
+    $taxonomy = $screen->taxonomy ?? '';
+
+    if ( $taxonomy
+        && isset( nsfc_taxonomy_menu_items()[ $taxonomy ] )
+        && in_array( $screen->base, [ 'edit-tags', 'term' ], true ) ) {
+        return 'edit-tags.php?taxonomy=' . $taxonomy;
+    }
+
+    return $parent_file;
+}
+
+foreach ( NSFC_FIXED_TAXONOMIES as $nsfc_usage_taxonomy ) {
+    add_filter( "manage_edit-{$nsfc_usage_taxonomy}_columns", 'nsfc_taxonomy_usage_column' );
+    add_filter( "manage_{$nsfc_usage_taxonomy}_custom_column", 'nsfc_taxonomy_usage_column_content', 10, 3 );
+}
+unset( $nsfc_usage_taxonomy );
+
+/**
+ * Replace the term list's "Count" column with a per-post-type "Used by" column.
+ *
+ * Core's Count is a single number covering every post type the taxonomy is
+ * attached to, linked to exactly one of them. For program_location that meant
+ * "52" — 16 programs + 28 camp sessions + 8 venues — linking to a post type it
+ * couldn't name. Since Locations moved to a top-level menu its screen carries no
+ * post_type at all, so core fell back to `post` and the link led to an empty
+ * Posts list.
+ *
+ * Per-type counts are both honest about what the number means and give a link
+ * that actually lands somewhere.
+ */
+function nsfc_taxonomy_usage_column( $columns ) {
+    unset( $columns['posts'] );
+    $columns['nsfc_usage'] = __( 'Used by', 'nsfc' );
+
+    // Which locations actually have content carrying this term. Pointless on the
+    // Locations screen itself, where the answer is always the term's own name.
+    $screen = get_current_screen();
+    if ( $screen && 'program_location' !== ( $screen->taxonomy ?? '' ) ) {
+        $columns['nsfc_locations'] = __( 'Locations', 'nsfc' );
+    }
+
+    return $columns;
+}
+
+/**
+ * Which locations have content tagged with this term.
+ *
+ * Answers "which locations actually offer Competitive?" from the content itself.
+ * Note this is a different question from the Location Hub pages' "Program
+ * offerings" checkboxes, which are what a location *claims* to offer — all four
+ * locations currently tick all four boxes while only Rochester has content
+ * behind them. The two are deliberately separate sources, so a gap between them
+ * is worth being able to see.
+ *
+ * Counts are combined across every post type the taxonomy covers, so they are
+ * deliberately not links: one number spanning Programs and Camp Sessions cannot
+ * link honestly to either.
+ */
+function nsfc_taxonomy_locations_column_content( $taxonomy, $term ) {
+    $post_types = array_values( array_filter(
+        (array) get_taxonomy( $taxonomy )->object_type,
+        fn( $pt ) => is_object_in_taxonomy( $pt, 'program_location' )
+    ) );
+
+    if ( ! $post_types ) {
+        return '&mdash;';
+    }
+
+    // One query for the term's posts, then tally their locations in PHP —
+    // cheaper than a query per location on a 13-row screen like Camp Types.
+    $post_ids = get_posts( [
+        'post_type'      => $post_types,
+        'post_status'    => 'publish',
+        'posts_per_page' => -1,
+        'fields'         => 'ids',
+        'tax_query'      => [ [
+            'taxonomy' => $taxonomy,
+            'field'    => 'slug',
+            'terms'    => $term->slug,
+        ] ],
+    ] );
+
+    if ( ! $post_ids ) {
+        return '<span style="color:#8c8f94">' . esc_html__( 'none yet', 'nsfc' ) . '</span>';
+    }
+
+    // 'all_with_object_id' returns one row per post/term pair. The default
+    // returns each term once, which would count every location as 1.
+    $tally = [];
+    $assigned = wp_get_object_terms( $post_ids, 'program_location', [ 'fields' => 'all_with_object_id' ] );
+    if ( is_wp_error( $assigned ) ) {
+        return '&mdash;';
+    }
+    foreach ( $assigned as $location ) {
+        $tally[ $location->name ] = ( $tally[ $location->name ] ?? 0 ) + 1;
+    }
+
+    if ( ! $tally ) {
+        return '<span style="color:#8c8f94">' . esc_html__( 'not tagged to a location', 'nsfc' ) . '</span>';
+    }
+
+    arsort( $tally );
+
+    $out = [];
+    foreach ( $tally as $name => $count ) {
+        $out[] = esc_html( $name ) . ' <span style="color:#8c8f94">' . (int) $count . '</span>';
+    }
+
+    return implode( ' &middot; ', $out );
+}
+
+function nsfc_taxonomy_usage_column_content( $content, $column, $term_id ) {
+    if ( ! in_array( $column, [ 'nsfc_usage', 'nsfc_locations' ], true ) ) {
+        return $content;
+    }
+
+    $screen   = get_current_screen();
+    $taxonomy = $screen->taxonomy ?? '';
+    $term     = $taxonomy ? get_term( $term_id, $taxonomy ) : null;
+
+    if ( ! $term || is_wp_error( $term ) ) {
+        return '&mdash;';
+    }
+
+    if ( 'nsfc_locations' === $column ) {
+        return nsfc_taxonomy_locations_column_content( $taxonomy, $term );
+    }
+
+    $tax = get_taxonomy( $taxonomy );
+    $out = [];
+
+    foreach ( (array) $tax->object_type as $post_type ) {
+        $object = get_post_type_object( $post_type );
+        if ( ! $object || ! $object->show_ui ) {
+            continue;
+        }
+
+        $count = (int) ( new WP_Query( [
+            'post_type'      => $post_type,
+            'post_status'    => 'any',
+            'posts_per_page' => 1,
+            'fields'         => 'ids',
+            'no_found_rows'  => false,
+            'tax_query'      => [ [
+                'taxonomy' => $taxonomy,
+                'field'    => 'slug',
+                'terms'    => $term->slug,
+            ] ],
+        ] ) )->found_posts;
+
+        $label = sprintf( '%d %s', $count, $count === 1 ? $object->labels->singular_name : $object->labels->name );
+
+        if ( ! $count ) {
+            $out[] = '<span style="color:#8c8f94">' . esc_html( $label ) . '</span>';
+            continue;
+        }
+
+        $out[] = sprintf(
+            '<a href="%s">%s</a>',
+            esc_url( admin_url( sprintf( 'edit.php?post_type=%s&%s=%s', $post_type, $taxonomy, $term->slug ) ) ),
+            esc_html( $label )
+        );
+    }
+
+    return $out ? implode( ' &middot; ', $out ) : '&mdash;';
 }

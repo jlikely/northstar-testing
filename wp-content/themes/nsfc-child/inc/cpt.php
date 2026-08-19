@@ -22,6 +22,9 @@ function nsfc_register_cpts() {
         'has_archive'       => false,
         'hierarchical'      => false,
         'menu_icon'         => 'dashicons-clipboard',
+        // 26/27 keep the two content types adjacent and above the separator that
+        // inc/admin-ui.php inserts at 28; core puts Comments at 25.
+        'menu_position'     => 26,
         // No 'editor': a program's copy is all structured fields, and the block
         // canvas was a trap — single-program.php wrapped get_the_content() in a
         // <p class="lead"> without running block filters, so any real block
@@ -66,7 +69,7 @@ function nsfc_register_cpts() {
         'has_archive'       => false,
         'hierarchical'      => false,
         'menu_icon'         => 'dashicons-location',
-        'menu_position'     => 26,
+        'menu_position'     => 30,
         'supports'          => [ 'title' ],
     ] );
 
@@ -94,7 +97,7 @@ function nsfc_register_cpts() {
         'has_archive'       => false,
         'hierarchical'      => false,
         'menu_icon'         => 'dashicons-groups',
-        'menu_position'     => 27,
+        'menu_position'     => 31,
         // page-attributes gives the Order box, so the dropdown can read in a
         // sensible sequence rather than alphabetically (U13 would sort before U6).
         'supports'          => [ 'title', 'page-attributes' ],
@@ -117,6 +120,7 @@ function nsfc_register_cpts() {
         'has_archive'       => true,
         'hierarchical'      => false,
         'menu_icon'         => 'dashicons-calendar-alt',
+        'menu_position'     => 27,
         // No 'editor' or 'excerpt': a camp session is never rendered as a
         // single — it appears as a card and a modal on camps-season.php, both
         // built entirely from Carbon Fields meta plus its camp_type term's

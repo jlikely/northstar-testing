@@ -17,45 +17,66 @@ function nsfc_admin_filter_post_types() {
 }
 
 /**
- * Render a Location dropdown above the Programs / Camp Sessions list tables.
+ * Which taxonomies get a dropdown above the list tables, in display order.
+ *
+ * A taxonomy is only rendered for post types it's actually attached to, so the
+ * Venues list shows Location alone while Programs and Camp Sessions show
+ * Location and Level.
+ *
+ * Season and Camp Type are deliberately not here yet — the query side
+ * (nsfc_admin_location_filter_query) already handles all four, so adding either
+ * is one entry.
+ */
+function nsfc_admin_filter_taxonomies() {
+    return [ 'program_location', 'program_level' ];
+}
+
+/**
+ * Render the filter dropdowns above the Programs / Camp Sessions / Venues lists.
  *
  * WP core's WP_Posts_List_Table::extra_tablenav() only auto-builds filters for
  * category, date, and post format — never custom taxonomies — so without this
- * there is no way to narrow either list by location.
- *
- * Options come from nsfc_location_term_options(), the same helper every
- * location dropdown in the theme uses, so adding a `program_location` term
- * makes it appear here with no code change.
+ * there is no way to narrow these lists at all.
  */
 function nsfc_admin_location_filter( $post_type ) {
     if ( ! in_array( $post_type, nsfc_admin_filter_post_types(), true ) ) {
         return;
     }
 
-    $options = nsfc_location_term_options();
-    if ( empty( $options ) ) {
-        return;
-    }
+    foreach ( nsfc_admin_filter_taxonomies() as $taxonomy ) {
+        if ( ! is_object_in_taxonomy( $post_type, $taxonomy ) ) {
+            continue;
+        }
 
-    $selected = isset( $_GET['program_location'] ) ? sanitize_key( $_GET['program_location'] ) : '';
+        $tax = get_taxonomy( $taxonomy );
+        $terms = get_terms( [ 'taxonomy' => $taxonomy, 'hide_empty' => false ] );
+        if ( is_wp_error( $terms ) || ! $terms ) {
+            continue;
+        }
 
-    echo '<label class="screen-reader-text" for="nsfc-filter-location">' .
-        esc_html__( 'Filter by location', 'nsfc' ) . '</label>';
-    echo '<select name="program_location" id="nsfc-filter-location">';
-    printf(
-        '<option value=""%s>%s</option>',
-        selected( $selected, '', false ),
-        esc_html__( 'All locations', 'nsfc' )
-    );
-    foreach ( $options as $slug => $label ) {
+        $selected = isset( $_GET[ $taxonomy ] ) ? sanitize_key( wp_unslash( $_GET[ $taxonomy ] ) ) : '';
+
         printf(
-            '<option value="%s"%s>%s</option>',
-            esc_attr( $slug ),
-            selected( $selected, $slug, false ),
-            esc_html( $label )
+            '<label class="screen-reader-text" for="nsfc-filter-%1$s">%2$s</label>',
+            esc_attr( $taxonomy ),
+            esc_html( $tax->labels->all_items )
         );
+        printf( '<select name="%1$s" id="nsfc-filter-%1$s">', esc_attr( $taxonomy ) );
+        printf(
+            '<option value=""%s>%s</option>',
+            selected( $selected, '', false ),
+            esc_html( $tax->labels->all_items )
+        );
+        foreach ( $terms as $term ) {
+            printf(
+                '<option value="%s"%s>%s</option>',
+                esc_attr( $term->slug ),
+                selected( $selected, $term->slug, false ),
+                esc_html( $term->name )
+            );
+        }
+        echo '</select>';
     }
-    echo '</select>';
 }
 
 /**
@@ -69,18 +90,44 @@ function nsfc_admin_location_filter_query( $query ) {
     if ( ! is_admin() || ! $query->is_main_query() ) {
         return;
     }
-    if ( ! in_array( $query->get( 'post_type' ), nsfc_admin_filter_post_types(), true ) ) {
+
+    $post_type = $query->get( 'post_type' );
+    if ( ! $post_type || ! is_string( $post_type ) ) {
         return;
     }
 
-    $location = isset( $_GET['program_location'] ) ? sanitize_key( $_GET['program_location'] ) : '';
-    if ( '' === $location ) {
+    // Every one of our taxonomies, not just location. The four are registered
+    // non-public (they had accidental front-end archives), and WordPress forces
+    // `query_var` to false for non-public taxonomies — see WP_Taxonomy, "Force
+    // 'query_var' to false". So `edit.php?post_type=program&season=fall` is not
+    // parsed by core at all, and the "Used by" links on the term screens would
+    // silently return an unfiltered list. Handled explicitly here instead.
+    $tax_query = [];
+
+    foreach ( NSFC_FIXED_TAXONOMIES as $taxonomy ) {
+        if ( ! is_object_in_taxonomy( $post_type, $taxonomy ) ) {
+            continue;
+        }
+
+        $slug = isset( $_GET[ $taxonomy ] ) ? sanitize_key( wp_unslash( $_GET[ $taxonomy ] ) ) : '';
+        if ( '' === $slug ) {
+            continue;
+        }
+
+        $tax_query[] = [
+            'taxonomy' => $taxonomy,
+            'field'    => 'slug',
+            'terms'    => $slug,
+        ];
+    }
+
+    if ( ! $tax_query ) {
         return;
     }
 
-    $query->set( 'tax_query', [ [
-        'taxonomy' => 'program_location',
-        'field'    => 'slug',
-        'terms'    => $location,
-    ] ] );
+    if ( count( $tax_query ) > 1 ) {
+        $tax_query['relation'] = 'AND';
+    }
+
+    $query->set( 'tax_query', $tax_query );
 }
